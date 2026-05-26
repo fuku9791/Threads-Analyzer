@@ -1,1638 +1,1348 @@
-import { useState, useEffect, useMemo } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
+import { useMemo, useState } from "react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
-const C = {
-  bg:"#fdf8ff", s1:"#ffffff", s2:"#fef3f8", s3:"#f8f0ff",
-  border:"#f0d9f7", border2:"#fce4ef",
-  pink:"#e8417a", pinkL:"#ff6fa8", pinkBg:"#fff0f5",
-  purple:"#8b35cc", purpleL:"#b06de0", purpleBg:"#f5eeff",
-  orange:"#f07030", orangeL:"#ff9555", orangeBg:"#fff4ee",
-  text:"#2d1040", sub:"#7a4d9a", muted:"#c09ad0",
-  green:"#27a86a", greenBg:"#f0faf5",
-  red:"#e03060", redBg:"#fff0f3",
-  gold:"#d48800", goldBg:"#fffbee",
-  shadow:"0 2px 16px rgba(180,100,220,0.10)",
-  shadow2:"0 4px 24px rgba(180,100,220,0.15)",
-};
+const NL = String.fromCharCode(10);
 
-const MASTER_KNOWLEDGE = {
-  nekasegi:{
-    summary:"Threads×有料記事販売。最短3日で収益化。フォロワー0から機能する。",
-    roadmap:["①アカウントパワー：客目線バズ投稿でホーム表示を増やす","②欲求喚起投稿：理想の未来×手段×再現性の3点セット","③有益投稿：即効性ある情報を無償提供（欲求喚起5:有益1）","④CTA：見ることが読者の得になる形で誘導","⑤無料note：体験談+概要で売れる顧客に変える","⑥有料note成約：欲しくて仕方ない状態を作ってから誘導"],
-    desireElements:["見た人があこがれる理想を実現している","それがあなたのアカウントから手に入る","難易度が高くない"],
-    ctaTips:["してほしいアクション＝お客様の利益の図式を作る","見てくださいではなく見ることが得になる形に","無料noteの一部を見せて全部見たくなる状態を作る"],
-    addLectures:["投稿に主語を入れる：投稿→アカウント→中の人への興味移行","売れている様子を見せる：人気感・バンドワゴン効果","差別化は中の人を出すこと：人格・信念・性格","小さなコミュニティ：双方向投稿→企画→小さな島","LINE/オプチャ：500フォロワーから。告知役割で使う"],
-  },
-  hookMethods:{
-    osaru:{name:"おさる式",core:"知らないと損する情報緊急性型",pattern:"知らないと損→今すぐ確認→具体手順→CTA",examples:["知らないと損する話","今すぐ確認してほしいこと","9割の人が知らない○○","やってはいけない○○"]},
-    nekasegi:{name:"寝稼ぎ式",core:"診断・分類・返信誘発型",pattern:"あなたはどのタイプ？→分類→私もそうだった→返信誘発",examples:["これ、当てはまる？","あなたはどのタイプ？①②③","ひとつでもあるなら…","番号だけ置いていって"]},
-    hika:{name:"ヒカさん式",core:"人格＋数字＋読者の変化で信頼を積む型",patterns:["業界の常識ぶち壊し型：Threads攻略という低重要度テーマに囚われるな","実績スクショ＋コメント型：月100万達成のDMが来た","自分語り＋人間味型：昔は○○だったけど今は","キャラ・コミュニティ感型：仲間と一緒に走る感覚","戦略図型：全体像の地図を見せる"],transfers:["戦略図投稿：勝ちパターンの地図を見せる","読者の変化投稿：noteを読んで動き出した声","逆張り型：損するのは準備してない人より順番を間違えた人"]},
-  },
-  aiTechniques:{
-    babySegment:{name:"ベイビーセグメント",howto:"AIに競合が拾ってない無名セグメントを20個+月収・課金心理まで出させる",benefit:"競合ゼロのセグメントを最初に取れる"},
-    painStacking:{name:"Pain Stacking",howto:"AIにペルソナの悩みを5層に積んで1商品で同時解決する構成を出させる",benefit:"商品の刺さり方が3倍変わる"},
-    reverseFunnel:{name:"Reverse Funnel",howto:"最終商品から逆算して必要な信頼・気づき・前提を洗い出し投稿テーマ30個を出させる",benefit:"投稿1個1個が販売の伏線になる"},
-    preLaunchEcho:{name:"Pre-Launch Echo",howto:"商品が存在しない状態でコンセプトを投稿して反応を見る",benefit:"需要確定してから作るからリリース直後から売れる"},
-    ghostReviewer:{name:"Ghost Reviewer",howto:"4人の視点（3年後の自分・競合・買わなかった客・購入者）でレビューさせる",benefit:"1人で4方向の本音フィードバックが手に入る"},
-  },
-  postLayers:{
-    rule:"伸びる投稿は認知、保存される投稿は信頼、売れる投稿は導線。1投稿に全部詰めない。",
-    recognition:"認知投稿：バズ・拡散・フォロワー獲得。共感、驚き、あるある、損失回避",
-    trust:"信頼投稿：体験談・チェックリスト・判断基準・Before/After。保存される",
-    funnel:"導線投稿：プロフィール・無料note・有料note・マガジンへ。売れる",
-  },
-  reflectionFramework:{
-    evaluationAxes:["1行目の強さ（スクロールを止めたか）","読者が私のことだと思えたか","共感だけで終わらず次の行動があるか","CTA（誘導先）は自然か","売り込み感が出すぎていないか","noteやプロフィールに進む理由が積み上がったか","バズ投稿の直後に橋渡し投稿があるか"],
-    winLosePattern:{win:"過去告白＋時間軸具体型（7年前の私は、金曜の夜が嫌だった）が最強",lose:"ロジック質問型（○○って何からすればいいの？）は今の段階では弱い",golden:"曜日・時間帯・生活シーン＋マイナス感情の3点セット"},
-    postTypes:["共感投稿（読者の気持ちを代弁）","欲求喚起投稿（理想の未来をイメージさせる）","有益投稿（保存される実務情報）","診断・返信誘発型","知らないと損する型（情報緊急性）","ストーリー投稿（体験談・Before/After）","導線投稿（note・プロフィールへ）","レビュー投稿（売れた様子・読者の変化）"],
-  },
-  fukuStyle:{
-    coreMessage:"今すぐ離婚を決めなくていい。でも、自分と子どもを守る準備だけは、今日から始めていい。",
-    winningPatterns:["共感で広げる→傾聴で関係を作る→失敗談と実用情報でnoteへ橋渡し","過去の私＋曜日/時間＋負の感情","読者の罪悪感を外す→準備という希望→note/プロフィールへ","伸びた投稿の翌日に橋渡し投稿（直後に導線を置く）","傾聴投稿では売らない。翌日以降のリプ欄CTA"],
-    ctaExamples:["必要な人だけ、プロフィールのnoteに置いてます","必要であれば見てみてください","今すぐ離婚を決めなくていい。でも準備の順番だけ見ておいてほしい"],
-    avoid:["共感だけで終わらせない","伸びた投稿にCTAを入れないのが一番もったいない","深夜23時以降の投稿は初速が出にくい","画像ゼロの1日は作らない"],
-  },
-};
+const HOOK_TYPES = ["質問型", "数字型", "共感型", "逆説型", "ストーリー型", "診断型", "情報緊急型", "その他"];
+const POST_ROLES = ["認知", "共感", "信頼", "導線", "販売", "レビュー", "制作過程", "その他"];
+const READER_PSYCHES = ["怖い", "動けない", "お金が不安", "子どもが不安", "証拠がない", "調停が怖い", "罪悪感", "孤独", "今すぐ知りたい", "その他"];
+const DAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const CSV_COLUMNS = ["text", "date", "time", "likes", "replies", "reposts", "views", "fc", "noteClicks", "noteSales", "hookType", "role", "readerPsyche"];
 
-const EXTENDED_KNOWLEDGE = {
-
-  fanPrinciples: {
-    summary:"ファン化とは『情報』ではなく『人』で選ばれている状態。テクニックではなく在り方の問題。",
-    sixPrinciples:[
-      {id:1,name:"仲間ポジション",core:"先生ポジションではなく横に並んで走る。上から教えるより巻き込む。尊敬は距離を生むが、応援は距離を縮める。",action:"教えるではなく共有する言い方に変える。弱さを隠さない。読者を参加者にする質問を入れる。"},
-      {id:2,name:"属人性",core:"情報は誰でも出せる。でも『あなた』は一人しかいない。立場・過程・感情・価値観・日常の5要素が属人性を構成する。",action:"投稿の最初の1〜2文に自分にしか書けない要素を入れる。自分の名前を別の人に変えても成立する投稿は属人性ゼロ。"},
-      {id:3,name:"途中を見せる",core:"完成品は消費され、途中の物語は伴走される。チャレンジ宣言→進捗報告→うまくいかなかった日も投稿。投稿の最後に次の一手を入れる。",action:"週1回進捗報告。達成できなくても途中経過を出す。"},
-      {id:4,name:"信用残高",core:"売上は信用の副産物。毎日の存在感・1対1のやりとり・仲間を巻き込む攻めの信用構築。一定ラインを超えたときまとめて返ってくる。",action:"毎日顔を出す。約束を守る。無料で価値を出し切る。巻き込みで攻めの信用構築。"},
-      {id:5,name:"救済",core:"正論でも励ましでも現状肯定でもない。今の行動の先にある具体的な未来を見せること。今を否定せず、今に留まらせない。",action:"ビフォーアフター接続型・1歩の価値翻訳型・具体的3ステップ型の投稿を使い分ける。"},
-      {id:6,name:"止まらない",core:"完成はピーク、未完成は未来。売れ続ける人の共通点：常に次のワクワクを持つ・圧倒的安心感・現在地を隠さない。巻き込んだ仲間の存在が止まらない力になる。",action:"月1回進化予告。週末に振り返り投稿。7日間チャレンジを繰り返す。"},
-    ],
-    brandCore:"煽らない・責めない・盛らない。一貫性があるブランドはファンが惚れる。",
-    fanDefinition:"ファンは『作る』ものではなく『なっていただく』もの。こちらの在り方次第で引き寄せられる。",
-  },
-
-  influenceStrategy: {
-    summary:"フォロワー数ゲームから降りて、ファン化とポジション取りで生き残る。",
-    weakerStrategy:{
-      position:"弱者＝0→1層の代弁者。大手には見えない現場の目線を持つ強みがある。",
-      triangle:"大手↔自分↔フォロワー候補の三角形を作る。大手の翻訳者・共闘者・ちょっと先を歩く先輩。",
-      targetBig:"推し大手3人を選ぶ。リプ返信率がそこそこある・リーダータイプ・フォロワーの声を紹介する人。",
-      selectRule:"Q1:いなくなったら寂しい? Q2:伸びたら自分のことのように嬉しい? Q3:一緒に仕事している自分を想像できる?",
-    },
-    replyTypes:[
-      {name:"要約＋自分事化リプ",pattern:"大手投稿を1行で要約→自分の状況に当てはめる→今日からやってみます",benefit:"ちゃんと読んだ人として印象が残る"},
-      {name:"補足情報リプ（0→1層の翻訳）",pattern:"完全同意→初心者がつまずくポイントを補足→ミニTipsを1つ添える",benefit:"翻訳者ポジションを確立できる"},
-      {name:"即実践＋感謝リプ（最強カード）",pattern:"どの投稿を見て何をやったか→結果の変化を数字/感情で→感謝",benefit:"共闘者として認識される。実績・口コミとして使ってもらえる"},
-    ],
-    distanceRules:[
-      "毎日絡まない。リプ1日1通・引用週2〜3本まで",
-      "DMはこちらからは基本送らない",
-      "ネタにしないラインを決める（DM内容・削除した投稿等）",
-      "月1回デトックス週：大手の名前を出さずに自分だけで投稿する",
-    ],
-    profileStrategy:{
-      gapMethod:"見た目ビジネスガチ勢→中身はカカロット系凡人というギャップを仕込む",
-      structure:["1行目：読者の口癖を代弁して弱い自分側に立つ","2行目：キャラで印象を崩す（カカロット系ママ等）","3〜4行目：弱者スタートなのにちゃんと結果も出している","5行目：合言葉で部活感を出す","6行目：行き先を1つだけ示す固定ポストへの誘導"],
-      principle:"プロフは自己紹介ではなく、一緒に目指す世界への招待状",
-    },
-  },
-
-  noteTimingSteps: {
-    summary:"noteが売れない理由の9割は内容ではなくタイミング。読者の温度と出し方が揃っていないから。",
-    coreInsight:"『読者がすでにお腹が空いている状態でちょうどカレーを出す』設計をする。",
-    badPatterns:[
-      {name:"ノルマ型",symptom:"毎月〇本出すノルマで焦りが文章に出る",fix:"本数より1本のタイミング精度に全振り"},
-      {name:"バズ依存型",symptom:"バズった勢いでいきなりnoteを出す→売れない",fix:"バズはあくまで認知の入口。連続投稿で温度を確認してから出す"},
-      {name:"準備過剰型",symptom:"完璧になってから出そうとして誰も待っていない",fix:"宣言を先にして強制的に完成に向かう。完了は完璧に勝る"},
-    ],
-    fiveSteps:[
-      {step:1,name:"種まき期",action:"Threadsでいつも通り発信する。バズ狙いではなく○○といえばこのテーマという記憶の積み上げ。"},
-      {step:2,name:"需要発見",action:"これ私・noteで読みたいが来た投稿に★をつける。いいね数ではなくプロフ遷移・コメントの深さで判断。"},
-      {step:3,name:"温度上げ",action:"★テーマを2〜3日連続でThreadsに投稿。切り口を変えながら。同じ人から連続リアクションが来たら需要が育ったサイン。"},
-      {step:4,name:"宣言",action:"このテーマnoteにまとめますね と1行だけ投稿。読者の頭に空き枠ができ、購入理由が生まれ、自分も書き切れる。"},
-      {step:5,name:"執筆・公開",action:"ここで初めてnoteを書く。読者が半分買う気で来る状態で出す。宣言から3〜7日以内が最適。"},
-    ],
-    finalCheck:[
-      "Threadsで『これ私』が来た投稿を起点にしているか",
-      "このテーマもっと深く知りたいという声が手元にあるか",
-      "予告を1回しているか",
-    ],
-    kpiToWatch:["エンゲージメント率（2%以上→★候補）","プロフ遷移率（0.5%以上→需要あり）","noteクリック率（3%以上→導線機能中）"],
-  },
-
-  noteWritingFormula: {
-    corePrinciple:"noteで稼ぐのは才能ではなくやり方。読まれる構造を知っているかどうかの違い。",
-    themeSelection:{
-      criteria:["悩んでいる人が多い","あなたが体験している","物語として伝えられる"],
-      strongThemes:["お金（稼ぎ方・節約・投資）","仕事（転職・フリーランス・副業）","人間関係","メンタルヘルス","失敗談（共感が最も高い）","コンプレックス克服"],
-    },
-    titleFormula:{
-      elements:["数字（具体性）","感情（絶望・衝撃・救われた）","ギャップ（常識とのズレ・意外性）"],
-      examples:["20年悩んだ生きづらさが一瞬で軽くなった『たった一つの』理由","30歳まで貯金ゼロだった僕が最初にやった『意外な』こと"],
-    },
-    introFormula:["問題提起（こんな悩みありませんか）","共感（私もそうでした）","転換点（あることに気づいてから）","読者メリット（この記事で解決します）"],
-    storyStructure:["出発（日常の描写）","問題（トラブル・悩み）","葛藤（うまくいかない）","どん底（最大のピンチ）","気づき（解決の糸口）","変化（行動・結果）","学び","読者へのメッセージ"],
-    pricingStrategy:{
-      starter:"300〜980円：失敗しても痛くない。ランチ代より安い比較で訴求",
-      middle:"1,500〜2,980円：書籍超えの法則。再現性のあるツール付きで差別化",
-      escalator:"最初安く→売れ行きで値上げ→最終定価という段階的値上げ戦略",
-      psychological:"末尾80円（980・1980・2980）がお得感を生む",
-    },
-    promotionFlow:{
-      sns:"SNSで続きが気になる寸止め投稿→要約図解型→感情ストーリー型でnoteへ",
-      fixedPost:"固定ポストに最高傑作noteを置いて集客の自動ドアを作る",
-      timing:"金曜夜〜日曜午前が最も売れやすい。リリース3〜5日前に予告投稿",
-    },
-    assetArticlePatterns:[
-      "入門ガイド型：初心者が永遠に生まれ続けるテーマ（時間が経っても需要がある）",
-      "メンタル処方箋型：人間の本能に訴える普遍的な悩みへの解決策",
-      "実体験レビュー型：公式には載っていない本音のメリット・デメリット",
-    ],
-  },
-
-  actionPrompts: {
-    analysisPrompt:`あなたは、SNSマーケティング、個人ビジネス設計、商品設計、集客導線、購買心理、行動心理、実行計画づくりに精通した戦略コンサルタントです。
-分析して現実を変えるための行動に落とし込んでください。
-
-【私の目標】
-収益目標：[月100万円]
-媒体：[Threads × note]
-商品：[dododo ChatGPT・有料note・ロードマップ教材]
-ターゲット：[副業したいAI初心者]
-ポジション：[AI活用を感情的に欲しくなる商品に変換できる人]
-悩み：[投稿は伸びるがnoteとの導線が弱い]
-
-【分析対象】（ここにデータを貼る）
-
-必ず以下を出す：現状詰まりポイント / ボトルネック1〜3個 / やめること・直すこと・作ること / 7日間プラン`,
-
-    weeklyReviewPrompt:`今週のThreads運用を振り返ってください。
-
-前提：目標月100万・本命導線はプロフィールnote・かおりスタイルで人間味MAX・数字は厳しめ
-
-期間：[日付]
-やったこと：[投稿内容・数字]
-伸びた投稿：[内容]
-弱かった投稿：[内容]
-迷い：[悩んでいること]
-
-出してほしい：1.総合評価★ 2.伸びた/伸びなかった理由 3.フック診断 4.CTA評価 5.note導線評価 6.次の24時間でやること3つ 7.次の投稿全文 8.今日の学びを一言で`,
-
-    executionPrompt:`分析結果をもとに実行計画を作ってください。
-優しい総論禁止。行動・期限・成果物・完了条件・検証数字まで具体化。
-やめること / 直すこと / 作ること / 7日間プラン / 30日ロードマップ / 心理ブロック対策まで出す。`,
-  },
-
-  kaoriRealData: {
-    realResults:{
-      followers:"SNS本格運用5ヶ月でThreadsフォロワー5,400人突破→その後1万人達成",
-      revenue:"note総売上150万円突破・最高月収105万円",
-      method:"広告費ゼロ・リスティングゼロ・専門知識なし・ライティングスキルなし",
-      startingPoint:"SNSが怖くて6ヶ月間見る専→投稿ボタンを押す手が震えるところから",
-    },
-    noteTimingResult:"月2万の壁→1週間で約20万円を達成。5ステップのタイミング設計で変わった",
-    vibrationAnalysis:"振り返りを仕組みにしたら2週間で3,000人増えて1万人達成",
-    positioningKey:"dododo（やる×やる×やる）のdo精神・カカロット系ママ・継続を最強の武器にする",
-    contentMix:"遊び・制作過程 / 失敗談・苦労話 / 実績・数字 / ノウハウ / 診断 / 世界観・価値観を使い分ける",
-    lessonFromInfluencer:"大手（okirumamaさん）にフォローしてもらえたのは：テーマの一貫性・IDのにおい合わせ・いいねと再投稿での静かな共闘、この3つの積み重け",
-  },
-};
-
-const FUKU_KNOWLEDGE = {
-  profile:{
-    name:"ふく",
-    accountId:"fuku.2025_hpgd",
-    displayName:"ふく｜離婚前に損したくないママが動ける場所",
-    bio:"モラハラ・不倫を経験し、証拠収集をしながら調停離婚した三姉妹の母。親権・養育費・面会交流・財産分与・年金分割まで調停で実際に話し合った経験あり。弁護士ではなく、同じように悩むママへ『損しないための準備の順番』を届ける立場。",
-    background:"モラハラ・不倫被害→証拠収集→調停離婚→三姉妹の母として経済的自立を目指す実体験の持ち主",
-  },
-  target:{
-    primary:"モラハラ被害中で逃げ出せない・動けないでいるママ",
-    pain:["モラハラだと認識できていない","証拠の集め方がわからない","弁護士費用が怖い","離婚後の生活が不安","子どもへの影響が心配","親権を取れるか不安","お金のことが全然わからない","一人で動くのが怖い"],
-    mindset:"まず準備ならできそう、と思える小さな一歩を踏み出させる",
-    demographics:"子持ちの主婦・ママ層、20〜40代",
-  },
-  position:{
-    uniqueness:"弁護士ではなく『同じ経験をしたママ』として、実体験ベースで準備の順番を伝えられる唯一の立場",
-    core:"損しないための準備の順番を届ける",
-    NOT:"法律の専門家・弁護士・完璧な成功者の話ではない",
-    strength:"親権・養育費・面会交流・財産分与・年金分割まで調停で実際に経験している一次情報の厚さ",
-  },
-  products:{
-    main:"有料note（販売中）",
-    lineup:["調停離婚の準備note","証拠収集ガイド","モラハラ認定チェックリスト","財産分与・養育費の計算ガイド","マガジン（シリーズ化）"],
-    funnel:"Threads発信→プロフィール→固定note→有料noteへの自然な導線",
-    priceRange:"500〜3,980円（note単体）",
-  },
-  goals:{
-    shortTerm:"Threadsからnote・マガジンへ自然につながる導線を確立",
-    revenue:["まずnote・マガジンで月10万円","次に月30万円","最終的に月100万円"],
-    content:"離婚やモラハラで動けずにいるママが『まず準備ならできそう』と思える投稿を育てる",
-  },
-  winningPatterns:{
-    bestHooks:["モラハラチェックリスト系（診断・共感型）","実体験暴露系（私も同じだった）","準備できること具体的提示（今日からできる）","弁護士費用なしでできたこと"],
-    resonanceTriggers:["『これってモラハラ？』の疑問に答える","証拠の集め方を具体的に","子どもへの影響を正直に","一人でできる準備ステップ"],
-    ctaStyle:"売り込みではなく『準備の後押し』スタイル。プロフやnoteへの誘導は自然に。",
-    avoidWords:["すぐ離婚して","弁護士に頼め","あなたは大丈夫"],
-  },
-  noteBridge:{
-    trigger:"投稿で『準備の入口』を見せてnoteで『準備の全体像』を渡す",
-    freeNote:"無料部分でモラハラの具体例・チェックリストの一部を見せる",
-    paidNote:"有料部分で準備の順番・テンプレート・実際の調停体験を渡す",
-    warmingUp:"2〜3日連続で同じテーマ（例：証拠収集）を違う切り口で投稿してから宣言",
-  },
-  avoid:{
-    topics:["煽り系（早く逃げて・こんな夫最悪）","過度なドラマ化","弁護士の専門領域に踏み込む"],
-    style:["上から目線","完璧な成功者感","読者を責める表現"],
-    patterns:["反応ゼロのタイミングでいきなりnote告知","ノルマ的な投稿","バズったからすぐnote出す"],
-  },
-};
-
-const NL = "\n";
-const HOOK_TYPES = ["共感型","数字型","逆説型","ストーリー型","質問型","情報緊急型","診断型","遊び・制作過程","その他"];
-const POST_ROLES = ["認知","共感","信頼","導線","販売","レビュー","制作過程","世界観","その他"];
-const READER_PSYCHES = ["AIわからない","noteが売れない","ネタない","副業したい","かおちゃんみたいになりたい","作業時間減らしたい","今すぐ知りたい","その他"];
-const DAYS = ["日","月","火","水","木","金","土"];
-const CSV_COLS = ["text","date","time","likes","replies","reposts","views","fc","noteClicks","noteSales","hookType","role","readerPsyche"];
-const THREADS_SCOPES = ["threads_basic","threads_content_publish","threads_manage_insights","threads_read_replies"];
-
-const SAMPLE_POSTS = [
-  {id:"sp1",text:"ChatGPTに自分の世界観を学習させて、カルーセルを10秒で作る方法。知らないと損すぎる。",date:"2026-05-01",time:"12:00",likes:523,replies:89,reposts:145,views:32000,fc:67,noteClicks:56,noteSales:3,hookType:"情報緊急型",role:"信頼",readerPsyche:"AIわからない"},
-  {id:"sp2",text:"2ヶ月で売上500万円になった。でも正直、最初の3ヶ月は1円も稼げなかった。",date:"2026-05-03",time:"21:00",likes:789,replies:167,reposts:234,views:48000,fc:112,noteClicks:89,noteSales:5,hookType:"ストーリー型",role:"共感",readerPsyche:"かおちゃんみたいになりたい"},
-  {id:"sp3",text:"AIで遊んでるだけで月50万になった人を3人見た。共通点はたった1つだった。",date:"2026-05-05",time:"19:00",likes:456,replies:78,reposts:189,views:28000,fc:89,noteClicks:45,noteSales:4,hookType:"逆説型",role:"導線",readerPsyche:"副業したい"},
-  {id:"sp4",text:"dododo ChatGPT、また10部売れた。ありがとうございます。週末に追記します。",date:"2026-05-08",time:"22:00",likes:234,replies:34,reposts:67,views:12000,fc:23,noteClicks:78,noteSales:7,hookType:"ストーリー型",role:"レビュー",readerPsyche:"今すぐ知りたい"},
-  {id:"sp5",text:"これ、当てはまる？①noteを書いているが全然売れない②AIに興味はあるが何から始めれば③作業時間が多いのに収益が少ない。ひとつでもあるなら、やり方の問題かも。",date:"2026-05-10",time:"12:00",likes:678,replies:234,reposts:156,views:42000,fc:134,noteClicks:67,noteSales:2,hookType:"診断型",role:"認知",readerPsyche:"noteが売れない"},
-  {id:"sp6",text:"ChatGPTで自分のアイコンを作ってみた。5分で完成。お金もかからない。AIって面白い。",date:"2026-05-12",time:"18:00",likes:1234,replies:289,reposts:445,views:78000,fc:267,noteClicks:12,noteSales:0,hookType:"遊び・制作過程",role:"認知",readerPsyche:"AIわからない"},
-  {id:"sp7",text:"売れるnoteと売れないnoteの違いは、文章力じゃなくて導線。9割の人が順番を間違えてる。",date:"2026-05-15",time:"12:00",likes:567,replies:123,reposts:234,views:35000,fc:89,noteClicks:89,noteSales:6,hookType:"逆説型",role:"信頼",readerPsyche:"noteが売れない"},
-  {id:"sp8",text:"毎日投稿してる。疲れた日も、ネタない日も、バズらない日も。でも続けると何かが変わる。",date:"2026-05-18",time:"22:00",likes:890,replies:178,reposts:123,views:45000,fc:156,noteClicks:23,noteSales:1,hookType:"共感型",role:"世界観",readerPsyche:"かおちゃんみたいになりたい"},
+const THREADS_SCOPE_OPTIONS = ["threads_basic", "threads_content_publish", "threads_manage_insights", "threads_read_replies"];
+const THREADS_API_NOTES = [
+  "Reactだけで本番連携はしない。Client Secretと長期アクセストークンはバックエンドに置く。",
+  "Meta for DevelopersでThreads APIユースケースのアプリを作成する。",
+  "OAuthリダイレクトURL、データ削除URL、プライバシーポリシーURLをMeta側に登録する。",
+  "Threadsアカウントで認可し、バックエンドでcodeをaccess_tokenへ交換する。",
+  "投稿本文・投稿日・インサイトを取得し、このアプリの投稿データ形式に正規化する。",
 ];
 
-function toNum(v){const n=Number(v);return Number.isFinite(n)?n:0;}
-function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
-function makeId(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
+const THREADS_CREDENTIAL_TYPES = [
+  {
+    name: "Threads App ID / Client ID",
+    safeForFrontend: true,
+    whatItLooksLike: "数字だけのIDであることが多い。例：1234567890",
+    whereToUse: "React画面の Threads App ID / Client ID 欄。認可URLの client_id に入る。",
+    warning: "これだけでは投稿取得はできない。認可URLを作る入口用。",
+  },
+  {
+    name: "App Secret / Client Secret",
+    safeForFrontend: false,
+    whatItLooksLike: "長い英数字。secret、app_secret、client_secret などの名前で表示される。",
+    whereToUse: "バックエンドだけ。code を access_token に交換する時に使う。",
+    warning: "React画面やチャットに貼らない。外に出すと危険。",
+  },
+  {
+    name: "Access Token / User Access Token",
+    safeForFrontend: false,
+    whatItLooksLike: "EA で始まることが多い長い文字列。token、access_token などの名前で表示される。",
+    whereToUse: "バックエンドからThreads APIを叩く時に使う。テストだけなら一時利用は可能。",
+    warning: "中身は鍵そのもの。ここにもチャットにも貼らない。",
+  },
+  {
+    name: "Client Token",
+    safeForFrontend: false,
+    whatItLooksLike: "Metaアプリ設定にあるClient Token。名前が似ていて紛らわしい。",
+    whereToUse: "今回のThreads投稿取得では基本的に主役ではない。",
+    warning: "App ID欄に入れても認可エラーになりやすい。",
+  },
+  {
+    name: "Redirect URI / Callback URL",
+    safeForFrontend: true,
+    whatItLooksLike: "https://example.com/threads/callback のようなURL。",
+    whereToUse: "React画面のOAuthリダイレクトURL欄と、Meta側の有効なOAuthリダイレクトURIに完全一致で登録。",
+    warning: "末尾スラッシュ、https、wwwの有無まで一致が必要。",
+  },
+];
 
-function eg(p){
-  const v=toNum(p.views);
-  if(v<=0)return 0;
-  return +((toNum(p.likes)+toNum(p.replies)*3+toNum(p.reposts)*2)/v*100).toFixed(2);
-}
-function clickRate(p){
-  const v=toNum(p.views);
-  if(v<=0)return 0;
-  return +((toNum(p.noteClicks)/v)*100).toFixed(2);
-}
-function salesRate(p){
-  const c=toNum(p.noteClicks);
-  if(c<=0)return 0;
-  return +((toNum(p.noteSales)/c)*100).toFixed(2);
-}
-function profileScore(p){
-  const t=String(p.text||"");
-  let s=0;
-  ["AI","ChatGPT","note","副業","稼","売","do精神","かわいい","世界観","初心者","発信"].forEach(w=>{if(t.includes(w))s+=5;});
-  if(/プロフィール|note|まとめ|詳しくは|リンク/.test(t))s+=15;
-  if(/dododo|Brain|カルーセル|分析ツール/.test(t))s+=12;
-  if(/失敗|葛藤|しんどかった|正直/.test(t))s+=8;
-  if(/やってみた|とりあえず|do精神/.test(t))s+=8;
-  return clamp(s,0,100);
-}
-function funnelScore(p){
-  let s=0;
-  const e=eg(p),cr=clickRate(p),sr=salesRate(p);
-  if(e>=2)s+=18;else if(e>=1)s+=12;else if(e>=0.5)s+=7;
-  if(cr>=0.12)s+=22;else if(cr>=0.06)s+=15;else if(cr>0)s+=8;
-  if(sr>=5)s+=25;else if(sr>=2)s+=16;else if(sr>0)s+=9;
-  if(["導線","販売","信頼","レビュー"].includes(p.role))s+=10;
-  if(/プロフィール|note|まとめ|詳しくは/.test(String(p.text||"")))s+=10;
-  s+=Math.round(profileScore(p)*0.15);
-  return clamp(s,0,100);
+const FUKU_KNOWLEDGE = {
+  corePosition: "弁護士ではなく、調停離婚を経験した三姉妹の母。専門家として上から教えるのではなく、同じように悩むママへ損しない準備の道順を渡す先輩ママ。",
+  target: "夫の顔色をうかがいながら、子ども・生活費・住まい・養育費・将来が怖くて離婚に動けない30〜40代ママ。",
+  onePersonTarget: "夜、夫の足音や鍵の音で体が固まり、子どもの寝顔を見ながら『離婚したい。でもお金も住む場所も養育費も怖い』と検索している30〜40代のママ。",
+  mainMessage: "今すぐ離婚しなくていい。でも、自分と子どもを守る材料は集めていい。",
+  brandPromise: "怖くて動けない人に、感情論ではなく準備の順番を渡す。離婚を決めさせるのではなく、判断できる状態に戻す。",
+  platformRule: "Threadsは感情的な驚き・共感で反応される場。noteは思考的な説得・納得で購入される場。Threadsで売り切らず、問題提起・感情の揺さぶり・自分ごと化までに留める。",
+  funnelRule: "見られる投稿＝認知、保存される投稿＝信頼、売れる投稿＝導線。バズと購入は別物として分析する。",
+  productLine: {
+    main: "離婚前に損しない準備をまとめたnote / マガジン",
+    lowTicket: "調停前・弁護士の使い方・証拠収集などの500〜980円note",
+    highTicket: "証拠・調停・養育費・財産分与までまとめた高単価note / マガジン",
+    freeLead: "離婚前に確認するお金・制度・生活チェックリスト",
+  },
+  readerStates: [
+    "夫の帰宅音・足音・ただいまで体が固まる",
+    "離婚したいけど生活費・住まい・養育費が怖い",
+    "子どものために我慢しているが、本当に子どものためか迷っている",
+    "証拠がない、何を残せばいいかわからない",
+    "調停・弁護士・公正証書などの言葉だけで怖くなる",
+    "自分が悪いのかもしれないと罪悪感を抱えている",
+    "外面のいい夫のせいで誰にも信じてもらえない",
+    "夜にこっそり検索して、検索履歴を消している",
+  ],
+  contentRoles: [
+    "情景描写：夫の帰宅音、足音、ドア、夜の検索などで読者を止める",
+    "Before/After：怖くて動けない状態から、準備ならできそうへ",
+    "葛藤言語化：離婚したい。でも怖い。でも損したくない",
+    "傾聴投稿：返信・自己開示を生む。ここでは強く売らない",
+    "知らないと損する情報：お金、証拠、調停、養育費、制度",
+    "制作中/商品予告：必要だったから用意した流れを作る",
+    "証拠/実績：30部突破、読者の声、売れた報告、読後の変化",
+    "価値観/敵の明確化：我慢を美徳にしない。準備は悪いことじゃない",
+  ],
+  winningPatterns: [
+    "共感 → 罪悪感解除 → 準備ならできる → プロフィール/note",
+    "怖い情景 → それは弱さではない → 記録・お金・相談先などの次の一歩",
+    "知らないと損する情報 → 4つ/5つの確認項目 → 詳細はnote",
+    "売れた報告 → 感謝 → 追記予告 → 今見ておく理由",
+    "診断/チェック → ひとつでも当てはまるなら → 今すぐ離婚ではなく準備",
+    "常識の否定 → 実は大事な順番 → ふくさんの実体験",
+    "脈絡づくり → 最近同じ相談が多い → 必要だったからまとめた",
+    "無料note → 不安の整理 → 有料note/マガジンで具体手順",
+  ],
+  hookRules: [
+    "冒頭1行で読むか決めさせる",
+    "知らないと損する・9割が知らないなど情報緊急性を混ぜる",
+    "あなたはどれ？の診断・分類型で返信を生む",
+    "常識を少し否定する。例：損するのは準備不足より順番ミス",
+    "数字・固有名詞・ステップ数を入れて保存理由を作る",
+    "専門用語ではなく、読者の生活の言葉に翻訳する",
+    "読者の今の悩みを先に言い、制度や手順は後から置く",
+  ],
+  noteBridge: [
+    "詳しくはプロフィールのnoteにまとめています",
+    "必要であれば見てみてください",
+    "離婚するかどうかより先に、まず準備の順番を確認してほしい",
+    "ひとりで抱えなくていいように、私が調停前にやったことをまとめました",
+    "今すぐ決めなくていい。でも、損しない準備だけは始めていい",
+    "この投稿で心当たりがある人向けに、調停前の準備をまとめています",
+    "怖くて動けない人が、最初に確認することだけ整理しました",
+  ],
+  avoid: [
+    "法律の断定をしすぎない",
+    "医療・発達障害などを決めつけない",
+    "読者を責める覚悟がないだけ系にしない",
+    "傾聴投稿で強く売らない",
+    "Threads本文だけで全部説明して売ろうとしない",
+    "共感だけで終わらせず、次の一歩を1つ置く",
+    "煽りすぎて読者を不安に置き去りにしない",
+    "専門家っぽく上から言い切りすぎない",
+  ],
+  productThemes: [
+    "離婚前に確認するお金・制度・生活チェックリスト",
+    "証拠収集の始め方",
+    "調停前に決めたい条件整理",
+    "養育費・財産分与・年金分割・進学費用",
+    "子どもを守る準備",
+    "モラハラに気づくための言語化",
+    "夫のただいまが怖い人の心の離婚準備",
+    "離婚届不受理申出・児童手当・婚姻費用などの初動整理",
+  ],
+};
+
+const DEFAULT_PROFILE = {
+  target: FUKU_KNOWLEDGE.target,
+  onePersonTarget: FUKU_KNOWLEDGE.onePersonTarget,
+  position: FUKU_KNOWLEDGE.corePosition,
+  brandPromise: FUKU_KNOWLEDGE.brandPromise,
+  product: FUKU_KNOWLEDGE.productLine.main,
+  freeLead: FUKU_KNOWLEDGE.productLine.freeLead,
+  goal: "Threadsからプロフィール経由でnote / マガジン購入につなげる",
+  mainMessage: FUKU_KNOWLEDGE.mainMessage,
+  funnelDesign: "認知投稿で見つけてもらい、共感投稿で自己開示を生み、信頼投稿で保存され、導線投稿でプロフィール/noteへ進ませ、レビュー投稿で安心と人気感を積む。",
+  cta: "必要であればプロフィールのnoteにまとめています。今すぐ離婚を決めなくていいので、まず準備の順番だけ見てみてください。",
+  avoidTone: FUKU_KNOWLEDGE.avoid.join(NL),
+  winningPatterns: FUKU_KNOWLEDGE.winningPatterns.join(NL),
+};
+
+const SAMPLE_POSTS = [
+  { id: "1", text: "離婚したいのに動けない理由って、愛情があるからじゃなくて、生活費と子どもの未来が怖いからなんだよね。", date: "2026-05-20", time: "21:00", likes: 520, replies: 88, reposts: 64, views: 26000, fc: 42, noteClicks: 18, noteSales: 1, hookType: "共感型", role: "共感", readerPsyche: "お金が不安" },
+  { id: "2", text: "離婚前に見るべきお金は4つ。貯金、生活費、学費、退職金と年金。ここを見ないまま動くと不安が増える。", date: "2026-05-21", time: "12:00", likes: 310, replies: 31, reposts: 74, views: 18500, fc: 28, noteClicks: 29, noteSales: 2, hookType: "数字型", role: "信頼", readerPsyche: "お金が不安" },
+  { id: "3", text: "夫のただいまが怖い人へ。あなたが弱いんじゃない。身体が危険を覚えてしまってるだけ。必要なら、誰にも気づかれず始める心の離婚準備をプロフィールに置いています。", date: "2026-05-22", time: "22:00", likes: 740, replies: 166, reposts: 112, views: 42000, fc: 91, noteClicks: 56, noteSales: 3, hookType: "共感型", role: "導線", readerPsyche: "怖い" },
+  { id: "4", text: "調停で一番大事なのは、うまく話すことじゃなくて、事実と数字を先に整理しておくこと。感情を責められた人ほど、準備が盾になる。", date: "2026-05-23", time: "15:00", likes: 260, replies: 24, reposts: 58, views: 15000, fc: 18, noteClicks: 16, noteSales: 1, hookType: "逆説型", role: "信頼", readerPsyche: "調停が怖い" },
+  { id: "5", text: "また1歩、動き出してくださった方がいました。私のnoteを選んでくれてありがとうございます。週末に、調停前チェックの追記をします。", date: "2026-05-24", time: "22:00", likes: 190, replies: 18, reposts: 21, views: 9200, fc: 12, noteClicks: 42, noteSales: 2, hookType: "ストーリー型", role: "レビュー", readerPsyche: "今すぐ知りたい" },
+];
+
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function postDT(p){const d=new Date(`${p.date||"1970-01-01"}T${p.time||"00:00"}:00`);return isNaN(d)?new Date(0):d;}
-function daysBetween(a,b){return(postDT(b)-postDT(a))/(1000*60*60*24);}
-
-function autoClassify(text){
-  const t=String(text||"");
-  let hookType="共感型",role="共感",readerPsyche="その他";
-  if(/\d|[0-9]|つ|ステップ|項目|個|割/.test(t))hookType="数字型";
-  if(/知らないと損|損する|9割|絶対|今すぐ|注意|やってはいけない/.test(t))hookType="情報緊急型";
-  if(/これ.当てはまる|あなたはどれ|診断|チェック|ひとつでも/.test(t))hookType="診断型";
-  if(/じゃなくて|実は|本当は|一番大事|よりも|逆に/.test(t))hookType="逆説型";
-  if(/私|あの日|昨日|また|売れた|ありがとう|しんどかった/.test(t))hookType="ストーリー型";
-  if(/やってみた|作ってみた|試してみた|ChatGPT|AI.*画像|カルーセル/.test(t))hookType="遊び・制作過程";
-  if(/\?|？|どう思う|わかる|教えて/.test(t))hookType="質問型";
-  if(/プロフィール|note|まとめ|リンク|詳しくは|dododo|Brain/.test(t))role="導線";
-  else if(/売れ|購入|ありがとう|部|レビュー|追記/.test(t))role="レビュー";
-  else if(/作って|制作|追加|準備中|近日|週末に/.test(t))role="制作過程";
-  else if(/方法|手順|やり方|ステップ|設定|使い方/.test(t))role="信頼";
-  else if(/世界観|do精神|続け|毎日|疲れ/.test(t))role="世界観";
-  if(/AI|ChatGPT|Claude|Gemini/.test(t))readerPsyche="AIわからない";
-  if(/note|売れ|売上/.test(t))readerPsyche="noteが売れない";
-  if(/副業|稼ぐ|収益|収入/.test(t))readerPsyche="副業したい";
-  if(/今すぐ|知らないと損|緊急/.test(t))readerPsyche="今すぐ知りたい";
-  if(/ネタ|アイデア|何を書/.test(t))readerPsyche="ネタない";
-  return{hookType,role,readerPsyche};
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
-function normalize(p){
-  const auto=autoClassify(p.text);
-  return{
-    id:p.id||makeId(),
-    text:String(p.text||"").trim(),
-    date:p.date||new Date().toISOString().slice(0,10),
-    time:p.time||"21:00",
-    likes:toNum(p.likes),replies:toNum(p.replies),reposts:toNum(p.reposts),views:toNum(p.views),
-    fc:toNum(p.fc),noteClicks:toNum(p.noteClicks),noteSales:toNum(p.noteSales),
-    hookType:p.hookType||auto.hookType,
-    role:p.role||auto.role,
-    readerPsyche:p.readerPsyche||auto.readerPsyche,
+function engagementRate(post) {
+  const views = toNumber(post.views);
+  if (views <= 0) return 0;
+  const score = toNumber(post.likes) + toNumber(post.replies) * 3 + toNumber(post.reposts) * 2;
+  return Number(((score / views) * 100).toFixed(2));
+}
+
+function clickRate(post) {
+  const views = toNumber(post.views);
+  if (views <= 0) return 0;
+  return Number(((toNumber(post.noteClicks) / views) * 100).toFixed(2));
+}
+
+function salesRate(post) {
+  const clicks = toNumber(post.noteClicks);
+  if (clicks <= 0) return 0;
+  return Number(((toNumber(post.noteSales) / clicks) * 100).toFixed(2));
+}
+
+function profileAlignmentScore(post, profile = DEFAULT_PROFILE) {
+  const text = String(post.text || "");
+  let score = 0;
+  ["夫", "子ども", "生活費", "養育費", "調停", "証拠", "お金", "怖い", "準備", "離婚", "モラハラ"].forEach((word) => {
+    if (text.includes(word)) score += 4;
+  });
+  if (/今すぐ離婚|決めなくていい|準備|守る材料|順番/.test(text)) score += 16;
+  if (/プロフィール|note|マガジン|まとめ/.test(text)) score += 12;
+  if (/弁護士|調停|養育費|財産分与|年金|公正証書|不受理/.test(text)) score += 8;
+  if (/怖い|動けない|罪悪感|ひとり|検索|ただいま|帰宅音/.test(text)) score += 10;
+  if (profile?.mainMessage && text.includes("準備")) score += 6;
+  return clamp(score, 0, 100);
+}
+
+function funnelScore(post, profile = DEFAULT_PROFILE) {
+  let score = 0;
+  const text = String(post.text || "");
+  const eg = engagementRate(post);
+  const cr = clickRate(post);
+  const sr = salesRate(post);
+  if (eg >= 2) score += 18;
+  else if (eg >= 1) score += 12;
+  else if (eg >= 0.5) score += 7;
+  if (cr >= 0.12) score += 22;
+  else if (cr >= 0.06) score += 15;
+  else if (cr > 0) score += 8;
+  if (sr >= 5) score += 25;
+  else if (sr >= 2) score += 16;
+  else if (sr > 0) score += 9;
+  if (["導線", "販売", "信頼", "レビュー"].includes(post.role)) score += 10;
+  if (["怖い", "お金が不安", "調停が怖い", "証拠がない", "今すぐ知りたい"].includes(post.readerPsyche)) score += 8;
+  if (/プロフィール|note|まとめ|必要であれば|見てみて|準備|追記|選んでくれて/.test(text)) score += 10;
+  if (/怖い|動けない|子ども|生活費|養育費|調停|証拠|お金|離婚|モラハラ/.test(text)) score += 7;
+  score += Math.round(profileAlignmentScore(post, profile) * 0.18);
+  return clamp(score, 0, 100);
+}
+
+function makeId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function postDateTime(post) {
+  const date = post.date || "1970-01-01";
+  const time = post.time || "00:00";
+  const d = new Date(`${date}T${time}:00`);
+  return Number.isNaN(d.getTime()) ? new Date("1970-01-01T00:00:00") : d;
+}
+
+function daysBetween(a, b) {
+  return (postDateTime(b).getTime() - postDateTime(a).getTime()) / (1000 * 60 * 60 * 24);
+}
+
+function classifyPost(text) {
+  const t = String(text || "");
+  let hookType = "共感型";
+  let role = "共感";
+  let readerPsyche = "怖い";
+  if (/\d|[0-9]|[一二三四五六七八九十]つ|選|ステップ|項目/.test(t)) hookType = "数字型";
+  if (/知らないと損|損する|9割|絶対|今すぐ|注意|やってはいけない/.test(t)) hookType = "情報緊急型";
+  if (/これ、当てはまる|あなたはどれ|診断|チェック|ひとつでも/.test(t)) hookType = "診断型";
+  if (/じゃなくて|実は|本当は|一番大事なのは|よりも/.test(t)) hookType = "逆説型";
+  if (/私|あの日|昨日|また1歩|選んでくれて|経験|調停離婚/.test(t)) hookType = "ストーリー型";
+  if (/\?|？|どう思う|わかる/.test(t)) hookType = "質問型";
+  if (/プロフィール|note|必要であれば|見てみて|まとめました|リンク|マガジン/.test(t)) role = "導線";
+  else if (/売れ|購入|選んでくれて|ありがとうございます|追記|レビュー|読者の声/.test(t)) role = "レビュー";
+  else if (/作って|制作|追加|準備中|週末に|近日/.test(t)) role = "制作過程";
+  else if (/4つ|確認|チェック|調停|養育費|証拠|制度|財産分与|年金/.test(t)) role = "信頼";
+  else if (/怖い|つらい|苦しい|動けない|心臓|泣/.test(t)) role = "共感";
+  if (/お金|生活費|貯金|学費|養育費|家賃|年金|財産分与/.test(t)) readerPsyche = "お金が不安";
+  if (/子ども|子供|親権|転校|進学|学校/.test(t)) readerPsyche = "子どもが不安";
+  if (/証拠|録音|記録|日記|LINE/.test(t)) readerPsyche = "証拠がない";
+  if (/調停|裁判所|公正証書|離婚届不受理/.test(t)) readerPsyche = "調停が怖い";
+  if (/罪悪感|父親を奪う|私が悪い|我慢/.test(t)) readerPsyche = "罪悪感";
+  if (/ひとり|孤独|誰にも|相談/.test(t)) readerPsyche = "孤独";
+  if (/今すぐ|知らないと損|絶対|注意|やってはいけない/.test(t)) readerPsyche = "今すぐ知りたい";
+  if (/怖い|帰宅|ただいま|足音|鍵|心臓|動悸/.test(t)) readerPsyche = "怖い";
+  return { hookType, role, readerPsyche };
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function normalizePost(post) {
+  const auto = classifyPost(post.text);
+  return {
+    id: post.id || makeId(),
+    text: String(post.text || "").trim(),
+    date: post.date || new Date().toISOString().slice(0, 10),
+    time: post.time || "21:00",
+    likes: toNumber(post.likes),
+    replies: toNumber(post.replies),
+    reposts: toNumber(post.reposts),
+    views: toNumber(post.views),
+    fc: toNumber(post.fc),
+    noteClicks: toNumber(post.noteClicks),
+    noteSales: toNumber(post.noteSales),
+    hookType: post.hookType || auto.hookType,
+    role: post.role || auto.role,
+    readerPsyche: post.readerPsyche || auto.readerPsyche,
   };
 }
 
-function parseCsvLine(line){
-  const res=[];let cur="",inQ=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i],n=line[i+1];
-    if(c==='"'&&inQ&&n==='"'){cur+='"';i++;}
-    else if(c==='"'){inQ=!inQ;}
-    else if(c===','&&!inQ){res.push(cur.trim());cur="";}
-    else cur+=c;
+function parseCsv(text) {
+  const lines = String(text || "").split(/\r?\n/).filter((line) => line.trim() !== "");
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]).map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const obj = {};
+    headers.forEach((h, index) => {
+      obj[h] = values[index] ?? "";
+    });
+    const auto = classifyPost(obj.text);
+    return normalizePost({ ...obj, hookType: obj.hookType || auto.hookType, role: obj.role || auto.role, readerPsyche: obj.readerPsyche || auto.readerPsyche });
+  }).filter((post) => post.text);
+}
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function postsToCsv(posts) {
+  const header = CSV_COLUMNS.join(",");
+  const rows = posts.map((post) => CSV_COLUMNS.map((key) => csvEscape(post[key])).join(","));
+  return [header, ...rows].join(NL);
+}
+
+function hourLabel(hour) {
+  const h = Number(hour);
+  if (!Number.isFinite(h)) return "不明";
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
+function getPostHour(post) {
+  const raw = String(post?.time || "00:00");
+  const hour = Number(raw.split(":")[0]);
+  return Number.isFinite(hour) && hour >= 0 && hour <= 23 ? hour : 0;
+}
+
+function getTimeBand(hour) {
+  const h = Number(hour);
+  if (h >= 5 && h <= 10) return "朝";
+  if (h >= 11 && h <= 14) return "昼";
+  if (h >= 15 && h <= 18) return "夕方";
+  if (h >= 19 && h <= 23) return "夜";
+  return "深夜";
+}
+
+function analyzeGoldenTime(posts, profile = DEFAULT_PROFILE) {
+  if (!posts.length) {
+    return {
+      bestHour: null,
+      bestLabel: "データ待ち",
+      bestBand: "未判定",
+      confidence: 0,
+      insight: "投稿データを追加すると、ふくさんだけの勝ち時間を判定します。",
+      hourly: [],
+      bands: [],
+      ranking: [],
+    };
   }
-  res.push(cur.trim());return res;
-}
-function parseCsv(text){
-  const lines=String(text||"").split(/\r?\n/).filter(l=>l.trim());
-  if(lines.length<2)return[];
-  const headers=parseCsvLine(lines[0]).map(h=>h.trim());
-  return lines.slice(1).map(line=>{
-    const vals=parseCsvLine(line);
-    const obj={};headers.forEach((h,i)=>{obj[h]=vals[i]??""});
-    return normalize(obj);
-  }).filter(p=>p.text);
-}
-function csvEsc(v){const s=String(v??"");return/[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:`${s}`;}
-function toCsv(posts){return[CSV_COLS.join(","),...posts.map(p=>CSV_COLS.map(k=>csvEsc(p[k])).join(","))].join(NL);}
 
-function getRoleCounts(posts){
-  const c={};POST_ROLES.forEach(r=>c[r]=0);
-  posts.forEach(p=>c[p.role]=(c[p.role]||0)+1);return c;
+  const byHour = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: hourLabel(hour),
+    band: getTimeBand(hour),
+    count: 0,
+    views: 0,
+    egTotal: 0,
+    funnelTotal: 0,
+    clicks: 0,
+    sales: 0,
+    replies: 0,
+    fc: 0,
+    score: 0,
+    confidence: 0,
+  }));
+
+  posts.forEach((post) => {
+    const hour = getPostHour(post);
+    const bucket = byHour[hour];
+    bucket.count += 1;
+    bucket.views += toNumber(post.views);
+    bucket.egTotal += engagementRate(post);
+    bucket.funnelTotal += funnelScore(post, profile);
+    bucket.clicks += toNumber(post.noteClicks);
+    bucket.sales += toNumber(post.noteSales);
+    bucket.replies += toNumber(post.replies);
+    bucket.fc += toNumber(post.fc);
+  });
+
+  const hourly = byHour.map((bucket) => {
+    const avgEg = bucket.count ? Number((bucket.egTotal / bucket.count).toFixed(2)) : 0;
+    const avgFunnel = bucket.count ? Math.round(bucket.funnelTotal / bucket.count) : 0;
+    const clickRateValue = bucket.views ? Number(((bucket.clicks / bucket.views) * 100).toFixed(2)) : 0;
+    const salesPerPost = bucket.count ? Number((bucket.sales / bucket.count).toFixed(2)) : 0;
+    const replyPerPost = bucket.count ? Number((bucket.replies / bucket.count).toFixed(1)) : 0;
+    const fcPerPost = bucket.count ? Number((bucket.fc / bucket.count).toFixed(1)) : 0;
+    const confidence = bucket.count >= 5 ? 100 : bucket.count >= 3 ? 72 : bucket.count === 2 ? 48 : bucket.count === 1 ? 26 : 0;
+    const score = bucket.count ? Math.round(
+      avgEg * 8 +
+      avgFunnel * 0.55 +
+      clickRateValue * 18 +
+      salesPerPost * 18 +
+      replyPerPost * 0.18 +
+      fcPerPost * 0.12 +
+      Math.min(bucket.count, 5) * 4
+    ) : 0;
+    return { ...bucket, avgEg, avgFunnel, clickRateValue, salesPerPost, replyPerPost, fcPerPost, confidence, score };
+  });
+
+  const activeHours = hourly.filter((item) => item.count > 0).sort((a, b) => b.score - a.score);
+  const best = activeHours[0];
+
+  const bandMap = {};
+  hourly.filter((item) => item.count > 0).forEach((item) => {
+    if (!bandMap[item.band]) bandMap[item.band] = { band: item.band, count: 0, scoreTotal: 0, egTotal: 0, funnelTotal: 0, clicks: 0, sales: 0 };
+    bandMap[item.band].count += item.count;
+    bandMap[item.band].scoreTotal += item.score;
+    bandMap[item.band].egTotal += item.avgEg * item.count;
+    bandMap[item.band].funnelTotal += item.avgFunnel * item.count;
+    bandMap[item.band].clicks += item.clicks;
+    bandMap[item.band].sales += item.sales;
+  });
+
+  const bands = Object.values(bandMap).map((item) => ({
+    ...item,
+    avgScore: item.count ? Math.round(item.scoreTotal / Math.max(1, Object.keys(bandMap).length)) : 0,
+    avgEg: item.count ? Number((item.egTotal / item.count).toFixed(2)) : 0,
+    avgFunnel: item.count ? Math.round(item.funnelTotal / item.count) : 0,
+  })).sort((a, b) => b.avgScore - a.avgScore);
+
+  if (!best) {
+    return {
+      bestHour: null,
+      bestLabel: "データ待ち",
+      bestBand: "未判定",
+      confidence: 0,
+      insight: "時間付きの投稿データがまだありません。投稿時間を入れると判定できます。",
+      hourly,
+      bands,
+      ranking: [],
+    };
+  }
+
+  const confidenceText = best.confidence >= 72 ? "かなり信頼できます" : best.confidence >= 48 ? "もう少し投稿数がほしいです" : "仮説段階です";
+  const insight = `${best.label}台が今のところ最有力です。平均EG率${best.avgEg}%、平均導線${best.avgFunnel}点、noteクリック${best.clicks}件、購入${best.sales}件。信頼度は${best.confidence}%で、${confidenceText}。`;
+
+  return {
+    bestHour: best.hour,
+    bestLabel: best.label,
+    bestBand: best.band,
+    confidence: best.confidence,
+    insight,
+    hourly,
+    bands,
+    ranking: activeHours.slice(0, 5),
+  };
 }
 
-function recommendNext(posts){
-  if(!posts.length)return{role:"共感",hook:"ストーリー型",psyche:"かおちゃんみたいになりたい",reason:"まずdo精神・失敗談・自己開示から始めて人間性を見せましょう。",theme:"AIを始めたきっかけの話"};
-  const counts=getRoleCounts(posts);
-  const totalSales=posts.reduce((s,p)=>s+toNum(p.noteSales),0);
-  const recent=[...posts].sort((a,b)=>postDT(b)-postDT(a)).slice(0,5);
-  const recentRoles=getRoleCounts(recent);
-  const best=[...posts].sort((a,b)=>funnelScore(b)-funnelScore(a))[0];
-  if((counts["共感"]||0)>=posts.length*0.45&&(counts["信頼"]||0)<posts.length*0.25)
-    return{role:"信頼",hook:"数字型",psyche:best?.readerPsyche||"AIわからない",reason:"共感が多め。保存される実務投稿（手順・ノウハウ）を挟むと、note購入前の納得が作れます。",theme:"ChatGPTで発信素材を作る5ステップ"};
-  if((counts["導線"]||0)<Math.max(1,Math.floor(posts.length*0.18)))
-    return{role:"導線",hook:"ストーリー型",psyche:best?.readerPsyche||"副業したい",reason:"導線投稿が少なめ。売り込まず脈絡を作り、プロフィール/noteへの橋を置くタイミングです。",theme:"最近同じ質問が多いのでまとめました"};
-  if(totalSales>0&&(recentRoles["レビュー"]||0)===0)
-    return{role:"レビュー",hook:"ストーリー型",psyche:"今すぐ知りたい",reason:"noteが売れています。売れた事実・感謝・追記予告を出すと人気感と安心感が積み上がります。",theme:"dododo ChatGPT、また〇部売れました"};
-  return{role:"診断",hook:"診断型",psyche:best?.readerPsyche||"noteが売れない",reason:"返信・自己開示を生む診断型を出す時期。読者に『これ私だ』と思わせてから導線へつなげます。",theme:"これ当てはまる？AI活用で稼げない人の共通点"};
+function getRoleCounts(posts) {
+  const counts = POST_ROLES.reduce((acc, role) => ({ ...acc, [role]: 0 }), {});
+  posts.forEach((post) => {
+    counts[post.role] = (counts[post.role] || 0) + 1;
+  });
+  return counts;
 }
 
-function analyzeSalesWindows(posts){
-  const sorted=[...posts].sort((a,b)=>postDT(a)-postDT(b));
-  return sorted.filter(p=>toNum(p.noteSales)>0).map(salePost=>{
-    const before=sorted.filter(p=>p.id!==salePost.id&&daysBetween(p,salePost)>=0&&daysBetween(p,salePost)<=3);
-    const after=sorted.filter(p=>p.id!==salePost.id&&daysBetween(salePost,p)>=0&&daysBetween(salePost,p)<=1.5);
-    const bRoles=getRoleCounts(before);
-    const domRole=Object.entries(bRoles).sort((a,b)=>b[1]-a[1])[0]?.[0]||"不明";
-    const bScore=before.length?Math.round(before.reduce((s,p)=>s+funnelScore(p),0)/before.length):0;
-    return{salePost,before,after,insight:before.length?`販売前3日は「${domRole}」が多め。平均導線スコア${bScore}点。`:"販売前3日のデータが少ないため流れをまだ判定しきれません。"};
+function recommendNextPost(posts, profile = DEFAULT_PROFILE) {
+  if (!posts.length) return { role: "共感", hook: "共感型", psyche: "怖い", reason: "まだデータがないので、まず読者の痛みを止める共感投稿から始めます。", theme: "夫のただいまが怖い" };
+  const counts = getRoleCounts(posts);
+  const totalSales = posts.reduce((sum, p) => sum + toNumber(p.noteSales), 0);
+  const recent = [...posts].sort((a, b) => postDateTime(b) - postDateTime(a)).slice(0, 5);
+  const recentRoles = getRoleCounts(recent);
+  const best = [...posts].sort((a, b) => funnelScore(b, profile) - funnelScore(a, profile))[0];
+  if ((counts["共感"] || 0) >= posts.length * 0.45 && (counts["信頼"] || 0) < posts.length * 0.25) return { role: "信頼", hook: "数字型", psyche: best?.readerPsyche || "お金が不安", reason: "共感投稿が多めです。読者が保存できる実務投稿を挟むと、note購入前の納得が作れます。", theme: "離婚前に確認する4つのお金" };
+  if ((counts["導線"] || 0) < Math.max(1, Math.floor(posts.length * 0.18))) return { role: "導線", hook: "ストーリー型", psyche: best?.readerPsyche || "怖い", reason: "導線投稿が少なめです。売り込まず、脈絡を作ってプロフィール/noteへ橋を置くタイミングです。", theme: best?.readerPsyche === "調停が怖い" ? "調停前に準備してよかったこと" : "誰にも気づかれず始める離婚準備" };
+  if (totalSales > 0 && (recentRoles["レビュー"] || 0) === 0) return { role: "レビュー", hook: "ストーリー型", psyche: "今すぐ知りたい", reason: "noteが売れています。売れた事実・感謝・追記予告を出すと、人気感と安心感が積み上がります。", theme: "また1歩、動き出してくださった方がいました" };
+  return { role: "診断", hook: "診断型", psyche: best?.readerPsyche || "怖い", reason: "次は返信・自己開示を生む診断型が合います。読者に『これ私だ』と思わせてから導線へつなげます。", theme: "それ、モラハラかもしれないチェック" };
+}
+
+function analyzeSalesWindows(posts, profile = DEFAULT_PROFILE) {
+  const sorted = [...posts].sort((a, b) => postDateTime(a) - postDateTime(b));
+  return sorted.filter((post) => toNumber(post.noteSales) > 0).map((salePost) => {
+    const before = sorted.filter((post) => post.id !== salePost.id && daysBetween(post, salePost) >= 0 && daysBetween(post, salePost) <= 3);
+    const after = sorted.filter((post) => post.id !== salePost.id && daysBetween(salePost, post) >= 0 && daysBetween(salePost, post) <= 1.5);
+    const beforeRoles = getRoleCounts(before);
+    const beforeScore = before.length ? Math.round(before.reduce((sum, p) => sum + funnelScore(p, profile), 0) / before.length) : 0;
+    const dominantRole = Object.entries(beforeRoles).sort((a, b) => b[1] - a[1])[0]?.[0] || "不明";
+    return { salePost, before, after, beforeScore, insight: before.length ? `販売前3日間は「${dominantRole}」が多め。平均導線スコアは${beforeScore}点です。` : "販売前3日間の投稿が少ないため、売れた前の流れをまだ判定しきれません。" };
   });
 }
 
-function buildAuthUrl(cfg){
-  const id=String(cfg?.clientId||"").trim();
-  const uri=String(cfg?.redirectUri||"").trim();
-  const sc=Array.isArray(cfg?.scopes)&&cfg.scopes.length?cfg.scopes:["threads_basic"];
-  if(!id||!uri)return"";
-  return`https:
+function makeDraftByRecommendation(rec) {
+  if (rec.role === "信頼") return ["離婚前に見ておくべきお金は、まず4つ。", "", "・毎月の生活費", "・子どもの学費", "・今ある貯金", "・養育費や年金分割", "", "全部完璧じゃなくていい。", "でも、ここが見えるだけで『怖い』が少しだけ『考えられる』に変わります。"].join(NL);
+  if (rec.role === "導線") return [`最近、${rec.theme}について同じ悩みをよく見ます。`, "", "私も最初は、何から始めたらいいか分かりませんでした。", "でも、調停前に準備しておいてよかったことがあります。", "", "必要であれば、プロフィールのnoteにまとめています。"].join(NL);
+  if (rec.role === "レビュー") return ["また1歩、動き出してくださった方がいました。", "", "私のnoteを選んでくれてありがとうございます。", "", "離婚するかどうかより先に、まず自分と子どもを守る準備を知ってほしい。", "週末に、調停前チェックも追記します。"].join(NL);
+  if (rec.role === "診断") return ["これ、当てはまる？", "", "・夫の帰宅音で体が固まる", "・生活費の話をすると責められる", "・子どもの前では笑ってしまう", "・夜にこっそり離婚を検索する", "", "ひとつでもあるなら、今すぐ離婚じゃなくていい。まず準備からで大丈夫。"].join(NL);
+  return [`${rec.theme}って、経験した人にしかわからない怖さがある。`, "", "でもね、今すぐ離婚を決めなくていい。", "まずは、自分と子どもを守る材料を集めるだけでいい。"].join(NL);
 }
 
-function authDiagnostics(cfg){
-  const id=String(cfg?.clientId||"").trim();
-  const uri=String(cfg?.redirectUri||"").trim();
-  const issues=[];
-  if(!id)issues.push("Threads App ID / Client ID が空です。");
-  if(id&&!/^[0-9]+$/.test(id))issues.push("Client IDは通常数字のみです。App SecretやAccess Tokenを入れていないか確認を。");
-  if(!uri)issues.push("リダイレクトURLが空です。");
-  if(uri&&uri.includes("your-domain.com"))issues.push("リダイレクトURLが仮URLのままです。実際に公開しているURLに変更してください。");
-  if(uri&&!uri.startsWith("https:
-  if(!(cfg?.scopes||[]).includes("threads_basic"))issues.push("threads_basicは基本的に必要です。");
+function buildThreadsAuthUrl(config) {
+  const clientId = String(config?.clientId || "").trim();
+  const redirectUri = String(config?.redirectUri || "").trim();
+  const scopes = Array.isArray(config?.scopes) && config.scopes.length ? config.scopes : ["threads_basic"];
+  if (!clientId || !redirectUri) return "";
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    scope: scopes.join(","),
+    response_type: "code",
+  });
+  return `https://www.threads.net/oauth/authorize?${params.toString()}`;
+}
+
+function getThreadsAuthDiagnostics(config) {
+  const clientId = String(config?.clientId || "").trim();
+  const redirectUri = String(config?.redirectUri || "").trim();
+  const scopes = Array.isArray(config?.scopes) ? config.scopes : [];
+  const issues = [];
+  if (!clientId) issues.push("Threads App ID / Client ID が空です。認可URLに client_id が入りません。");
+  if (clientId && !/^[0-9]+$/.test(clientId)) issues.push("Client ID は通常、数字だけのIDです。App SecretやAccess Tokenを入れていないか確認してください。");
+  if (!redirectUri) issues.push("OAuthリダイレクトURLが空です。");
+  if (redirectUri && redirectUri.includes("your-domain.com")) issues.push("OAuthリダイレクトURLが仮URLのままです。実際に公開しているURLに変更してください。");
+  if (redirectUri && !redirectUri.startsWith("https://")) issues.push("OAuthリダイレクトURLは本番ではHTTPSが必要です。");
+  if (!scopes.includes("threads_basic")) issues.push("threads_basic は基本的に必要です。チェックを入れてください。");
   return issues;
 }
 
-function normalizeThreadsItem(item){
-  const text=item?.text||item?.caption||"";
-  const created=item?.timestamp||item?.created_time||"";
-  const d=new Date(created);
-  const date=isNaN(d)?new Date().toISOString().slice(0,10):d.toISOString().slice(0,10);
-  const time=isNaN(d)?"21:00":d.toISOString().slice(11,16);
-  const ins=item?.insights||{};
-  return normalize({text,date,time,
-    likes:ins.likes||ins.like_count||item?.like_count||0,
-    replies:ins.replies||ins.reply_count||item?.reply_count||0,
-    reposts:ins.reposts||ins.repost_count||item?.repost_count||0,
-    views:ins.views||ins.view_count||item?.view_count||0,
-    fc:0,noteClicks:0,noteSales:0,
+function guessCredentialType(input) {
+  const value = String(input || "").trim();
+  const lower = value.toLowerCase();
+  if (!value) {
+    return {
+      title: "まだ未入力",
+      safety: "safe",
+      message: "キーの中身ではなく、ラベル名だけ入れるのがおすすめです。例：App ID、App Secret、Access Token など。",
+    };
+  }
+  if (lower.includes("secret") || lower.includes("app secret") || lower.includes("client secret")) {
+    return {
+      title: "App Secret / Client Secret の可能性が高い",
+      safety: "danger",
+      message: "これはReact画面に入れないでください。バックエンドだけで使う秘密鍵です。",
+    };
+  }
+  if (lower.includes("access token") || lower === "token" || lower.includes("user token") || lower.includes("long-lived") || lower.includes("short-lived")) {
+    return {
+      title: "Access Token の可能性が高い",
+      safety: "danger",
+      message: "投稿取得に使う鍵ですが、React画面やチャットには貼らないでください。バックエンド保存が安全です。",
+    };
+  }
+  if (lower.includes("client token")) {
+    return {
+      title: "Client Token の可能性が高い",
+      safety: "warn",
+      message: "名前は似ていますが、今回のThreads OAuthのclient_id欄に入れるものではない可能性が高いです。",
+    };
+  }
+  if (lower.includes("app id") || lower.includes("client id") || lower.includes("アプリid") || lower.includes("アプリ id")) {
+    return {
+      title: "App ID / Client ID の可能性が高い",
+      safety: "safe",
+      message: "これはThreads App ID / Client ID欄に入れる候補です。数字だけのIDならかなり可能性が高いです。",
+    };
+  }
+  if (/^[0-9]{6,}$/.test(value)) {
+    return {
+      title: "数字だけなのでApp ID / Client ID候補",
+      safety: "safe",
+      message: "Threads App ID / Client ID欄に入れる候補です。ただしMetaのThreadsユースケース側のIDか確認してください。",
+    };
+  }
+  if (/^ea[a-z0-9]/i.test(value) || value.length > 40) {
+    return {
+      title: "トークンまたは秘密鍵の可能性が高い",
+      safety: "danger",
+      message: "中身っぽい文字列です。貼らずに削除してください。使うならバックエンド側で扱います。",
+    };
+  }
+  if (value.startsWith("https://")) {
+    return {
+      title: "Redirect URI / Callback URL の可能性が高い",
+      safety: "safe",
+      message: "Meta側の有効なOAuthリダイレクトURIに完全一致で登録するURLです。",
+    };
+  }
+  return {
+    title: "判定が微妙",
+    safety: "warn",
+    message: "ラベル名だけでは判定しきれません。Meta画面で表示されている項目名を確認してください。中身のキーは貼らないでください。",
+  };
+}
+
+function normalizeThreadsApiPost(item) {
+  const text = item?.text || item?.caption || item?.body || "";
+  const created = item?.timestamp || item?.created_time || item?.date || new Date().toISOString();
+  const d = new Date(created);
+  const date = Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+  const time = Number.isNaN(d.getTime()) ? "21:00" : d.toISOString().slice(11, 16);
+  const insights = item?.insights || item || {};
+  const auto = classifyPost(text);
+  return normalizePost({
+    text,
+    date,
+    time,
+    likes: insights.likes || insights.like_count || item?.like_count || 0,
+    replies: insights.replies || insights.reply_count || item?.reply_count || 0,
+    reposts: insights.reposts || insights.repost_count || item?.repost_count || 0,
+    views: insights.views || insights.view_count || item?.view_count || 0,
+    fc: 0,
+    noteClicks: 0,
+    noteSales: 0,
+    hookType: auto.hookType,
+    role: auto.role,
+    readerPsyche: auto.readerPsyche,
   });
 }
 
-const card={background:C.s1,border:`1.5px solid ${C.border}`,borderRadius:16,padding:20,boxShadow:C.shadow};
-const inp={background:C.s2,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,width:"100%",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
-const lbl={display:"block",fontSize:11,color:C.muted,marginBottom:6,fontWeight:800,letterSpacing:"0.08em",textTransform:"uppercase"};
-const mkbtn=(bg=C.pink,color="#fff",extra={})=>({background:bg,color,border:"none",borderRadius:10,padding:"11px 22px",cursor:"pointer",fontWeight:800,fontSize:14,fontFamily:"inherit",transition:"all 0.15s",boxShadow:bg===C.pink?"0 4px 14px rgba(232,65,122,0.25)":bg===C.orange?"0 4px 14px rgba(240,112,48,0.2)":bg===C.purple?"0 4px 14px rgba(139,53,204,0.2)":"none",...extra});
-
-function Badge({children,color=C.pink,bg=C.pinkBg}){
-  return<span style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:bg,color,fontWeight:800}}>{children}</span>;
-}
-function ScoreBar({score}){
-  return<div style={{height:6,borderRadius:999,background:"#f4e7fb",overflow:"hidden",marginTop:6}}><div style={{height:"100%",borderRadius:999,background:`linear-gradient(90deg,${C.pink},${C.purple})`,width:`${clamp(score,0,100)}%`}}/></div>;
-}
-function SectionTitle({icon,title,color=C.purple}){
-  return<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}><div style={{width:4,height:20,background:color,borderRadius:4}}/><div style={{fontWeight:800,fontSize:15,color}}>{icon} {title}</div></div>;
-}
-function Tooltip2({active,payload,label}){
-  if(!active||!payload?.length)return null;
-  return<div style={{background:"#fff",border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",boxShadow:C.shadow,fontSize:12,color:C.text}}><div style={{fontWeight:700,marginBottom:4}}>{label}</div>{payload.map((p,i)=><div key={i} style={{color:p.color||C.purple}}>{p.name||p.dataKey}: {p.value}</div>)}</div>;
-}
-
-function Mkd({text}){
-  return<div style={{lineHeight:1.9,fontSize:14,color:C.text}}>
-    {String(text||"").split("\n").map((line,i)=>{
-      if(/^#{1,2}\s/.test(line))return<div key={i} style={{fontWeight:900,fontSize:16,margin:"22px 0 8px",color:C.purple,borderLeft:`3px solid ${C.purple}`,paddingLeft:10}}>{line.replace(/^#+\s/,"")}</div>;
-      if(/^###\s/.test(line))return<div key={i} style={{fontWeight:800,fontSize:14,margin:"14px 0 5px",color:C.pink}}>{line.replace(/^###\s/,"")}</div>;
-      if(/^\d+\.\s/.test(line))return<div key={i} style={{padding:"6px 12px",margin:"4px 0",background:C.purpleBg,borderRadius:8,fontWeight:700,color:C.purple,fontSize:13}}>{line}</div>;
-      if(line.startsWith("- ")||line.startsWith("・"))return<div key={i} style={{paddingLeft:16,color:C.sub,margin:"3px 0",display:"flex",gap:6}}><span style={{color:C.pinkL}}>›</span><span>{line.slice(2)}</span></div>;
-      if(/^[📊⏰🧠🎯💰📈✅❌🔥💡⚠️🏆📉🎪💎]/.test(line))return<div key={i} style={{fontWeight:800,fontSize:14,margin:"14px 0 5px",color:C.pink,display:"flex",gap:6}}>{line}</div>;
-      if(line.trim()==="")return<div key={i} style={{height:8}}/>;
-      return<div key={i} style={{color:C.text,margin:"2px 0"}}>{line}</div>;
-    })}
-  </div>;
+function runTests() {
+  const testPost = { likes: 10, replies: 2, reposts: 3, views: 1000, noteClicks: 10, noteSales: 1 };
+  const zeroViewPost = { likes: 999, replies: 999, reposts: 999, views: 0 };
+  const strongFunnelPost = { text: "夫のただいまが怖い人へ。必要であればプロフィールのnoteに準備をまとめています。", likes: 740, replies: 166, reposts: 112, views: 42000, noteClicks: 56, noteSales: 3, role: "導線", readerPsyche: "怖い" };
+  const csv = ["text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales", "\"夫のただいまが怖い\",2026-05-25,21:00,10,2,1,1000,1,3,0"].join(NL);
+  const parsed = parseCsv(csv);
+  const auto = classifyPost("離婚前に知らないと損する4つのお金");
+  const authUrl = buildThreadsAuthUrl({ clientId: "123", redirectUri: "https://example.com/callback", scopes: ["threads_basic", "threads_manage_insights"] });
+  const apiPost = normalizeThreadsApiPost({ text: "夫のただいまが怖い", timestamp: "2026-05-25T12:00:00Z", insights: { views: 1000, likes: 20, replies: 3, reposts: 2 } });
+  const golden = analyzeGoldenTime([
+    { text: "朝投稿", time: "07:00", likes: 100, replies: 20, reposts: 10, views: 3000, noteClicks: 8, noteSales: 1, role: "導線", readerPsyche: "怖い" },
+    { text: "夜投稿", time: "22:00", likes: 10, replies: 1, reposts: 1, views: 3000, noteClicks: 0, noteSales: 0, role: "共感", readerPsyche: "怖い" },
+  ], DEFAULT_PROFILE);
+  return [
+    { name: "EG率計算", passed: engagementRate(testPost) === 2.2, expected: "2.2", actual: String(engagementRate(testPost)) },
+    { name: "閲覧数0ならEG率0", passed: engagementRate(zeroViewPost) === 0, expected: "0", actual: String(engagementRate(zeroViewPost)) },
+    { name: "noteクリック率計算", passed: clickRate(testPost) === 1, expected: "1", actual: String(clickRate(testPost)) },
+    { name: "note購入率計算", passed: salesRate(testPost) === 10, expected: "10", actual: String(salesRate(testPost)) },
+    { name: "導線スコアが0〜100に収まる", passed: funnelScore(strongFunnelPost) >= 0 && funnelScore(strongFunnelPost) <= 100, expected: "0〜100", actual: String(funnelScore(strongFunnelPost)) },
+    { name: "CSVを1件読み込める", passed: parsed.length === 1 && parsed[0].text === "夫のただいまが怖い", expected: "1件", actual: `${parsed.length}件` },
+    { name: "本文から自動分類できる", passed: auto.hookType === "情報緊急型" && auto.readerPsyche === "お金が不安", expected: "情報緊急型/お金が不安", actual: `${auto.hookType}/${auto.readerPsyche}` },
+    { name: "ふく式ナレッジが読み込まれている", passed: FUKU_KNOWLEDGE.noteBridge.length >= 5, expected: "5以上", actual: String(FUKU_KNOWLEDGE.noteBridge.length) },
+    { name: "プロフィール初期値の改行文字が安全", passed: DEFAULT_PROFILE.avoidTone.includes(NL) && DEFAULT_PROFILE.winningPatterns.includes(NL), expected: "改行を含む文字列", actual: `${DEFAULT_PROFILE.avoidTone.includes(NL)}/${DEFAULT_PROFILE.winningPatterns.includes(NL)}` },
+    { name: "プロフィール一致スコアが0〜100に収まる", passed: profileAlignmentScore(strongFunnelPost) >= 0 && profileAlignmentScore(strongFunnelPost) <= 100, expected: "0〜100", actual: String(profileAlignmentScore(strongFunnelPost)) },
+    { name: "CSV出力にヘッダーが含まれる", passed: postsToCsv(SAMPLE_POSTS).startsWith(CSV_COLUMNS.join(",")), expected: "ヘッダーあり", actual: postsToCsv(SAMPLE_POSTS).slice(0, 20) },
+    { name: "Threads OAuth URLを生成できる", passed: authUrl.includes("www.threads.net/oauth/authorize") && authUrl.includes("threads_basic"), expected: "OAuth URL", actual: authUrl.slice(0, 45) },
+    { name: "Threads API風データを投稿形式に変換できる", passed: apiPost.text === "夫のただいまが怖い" && apiPost.views === 1000 && apiPost.hookType === "共感型", expected: "投稿形式", actual: `${apiPost.text}/${apiPost.views}/${apiPost.hookType}` },
+    { name: "私だけのゴールデンタイムを判定できる", passed: golden.bestLabel === "07:00" && golden.ranking.length >= 1, expected: "07:00", actual: golden.bestLabel },
+  ];
 }
 
-export default function App(){
-  const[posts,setPosts]=useState(SAMPLE_POSTS);
-  const[apiKey,setApiKey]=useState("");
-  const[apiInput,setApiInput]=useState("");
-  const[keySaved,setKeySaved]=useState(false);
-  const[tab,setTab]=useState("dashboard");
-  const[ready,setReady]=useState(false);
-  const[form,setForm]=useState({text:"",date:new Date().toISOString().slice(0,10),time:"21:00",likes:"0",replies:"0",reposts:"0",views:"0",fc:"0",noteClicks:"0",noteSales:"0",hookType:"共感型",role:"共感",readerPsyche:"その他"});
-  const[autoFill,setAutoFill]=useState(true);
-  const[csvText,setCsvText]=useState("");
-  const[csvMsg,setCsvMsg]=useState("");
-  const[aiResult,setAiResult]=useState("");
-  const[aiLoading,setAiLoading]=useState(false);
-  const[analysisType,setAnalysisType]=useState("full");
-  const[genResult,setGenResult]=useState("");
-  const[genLoading,setGenLoading]=useState(false);
-  const[genForm,setGenForm]=useState({theme:"",cta:"",product:"",tone:"共感型",goal:"フォロワー増加"});
-  const[copied,setCopied]=useState(false);
-  const[draftTheme,setDraftTheme]=useState("モラハラ証拠の集め方");
-  const[threadsConfig,setThreadsConfig]=useState({clientId:"",redirectUri:"https:
-  const[threadsJson,setThreadsJson]=useState("");
-  const[threadsMsg,setThreadsMsg]=useState("");
-  const[syncStatus,setSyncStatus]=useState("idle");
-  const[profile,setProfile]=useState({goal:"月100万円安定収益",product:FUKU_KNOWLEDGE.productLine.main,target:FUKU_KNOWLEDGE.target,funnel:FUKU_KNOWLEDGE.salesFunnelDesign,message:FUKU_KNOWLEDGE.mainMessage,cta:FUKU_KNOWLEDGE.noteBridge[0]});
+function Badge({ children }) {
+  return <span className="badge">{children}</span>;
+}
 
-  useEffect(()=>{
-    async function load(){
-      try{
-        const p=await window.storage.get("ka_posts3");
-        if(p?.value)setPosts(JSON.parse(p.value));
-        const k=await window.storage.get("th_key");
-        if(k?.value){setApiKey(k.value);setApiInput(k.value);}
-        const pr=await window.storage.get("ka_profile");
-        if(pr?.value)setProfile(JSON.parse(pr.value));
-      }catch(e){}
-      setReady(true);
+function Card({ children, className = "" }) {
+  return <div className={`card ${className}`}>{children}</div>;
+}
+
+function StatCard({ label, value, note, icon = "✨", tone = "pink" }) {
+  return <Card className={`statCard tone-${tone}`}><div className="statIcon">{icon}</div><p className="statLabel">{label}</p><p className="statValue">{value}</p>{note ? <p className="note">{note}</p> : null}</Card>;
+}
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return <div className="tooltip"><strong>{label}</strong>{payload.map((item) => <div key={item.dataKey}>{item.name || item.dataKey}: {item.value}</div>)}</div>;
+}
+
+function ScoreBar({ score }) {
+  return <div className="scoreWrap"><div className="scoreFill" style={{ width: `${clamp(score, 0, 100)}%` }} /></div>;
+}
+
+export default function App() {
+  const [posts, setPosts] = useState(SAMPLE_POSTS);
+  const [tab, setTab] = useState("dashboard");
+  const [showTests, setShowTests] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvMessage, setCsvMessage] = useState("");
+  const [threadsConfig, setThreadsConfig] = useState({
+    clientId: "",
+    redirectUri: "https://your-domain.com/threads/callback",
+    backendBaseUrl: "https://your-domain.com/api/threads",
+    scopes: ["threads_basic", "threads_manage_insights"],
+  });
+  const [threadsJson, setThreadsJson] = useState("");
+  const [threadsMessage, setThreadsMessage] = useState("");
+  const [threadsSyncStatus, setThreadsSyncStatus] = useState("idle");
+  const [credentialHint, setCredentialHint] = useState("");
+  const [autoClassify, setAutoClassify] = useState(true);
+  const [form, setForm] = useState({ text: "", date: new Date().toISOString().slice(0, 10), time: "21:00", likes: "0", replies: "0", reposts: "0", views: "0", fc: "0", noteClicks: "0", noteSales: "0", hookType: "共感型", role: "共感", readerPsyche: "怖い" });
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [draftTheme, setDraftTheme] = useState("夫のただいまが怖い");
+  const threadsAuthUrl = buildThreadsAuthUrl(threadsConfig);
+  const threadsAuthDiagnostics = getThreadsAuthDiagnostics(threadsConfig);
+  const credentialGuess = guessCredentialType(credentialHint);
+
+  const stats = useMemo(() => {
+    const funnelSorted = [...posts].sort((a, b) => funnelScore(b, profile) - funnelScore(a, profile));
+    const avgEg = posts.length ? (posts.reduce((sum, p) => sum + engagementRate(p), 0) / posts.length).toFixed(2) : "0.00";
+    const avgFunnel = posts.length ? Math.round(posts.reduce((sum, p) => sum + funnelScore(p, profile), 0) / posts.length) : 0;
+    const totalClicks = posts.reduce((sum, p) => sum + toNumber(p.noteClicks), 0);
+    const totalSales = posts.reduce((sum, p) => sum + toNumber(p.noteSales), 0);
+    const timeline = [...posts].sort((a, b) => String(a.date).localeCompare(String(b.date))).map((p) => ({ date: String(p.date || "").slice(5), eg: engagementRate(p), funnel: funnelScore(p, profile), sales: toNumber(p.noteSales) }));
+    const hookData = HOOK_TYPES.map((hook) => {
+      const group = posts.filter((p) => p.hookType === hook);
+      return { hook, funnel: group.length ? Math.round(group.reduce((sum, p) => sum + funnelScore(p, profile), 0) / group.length) : 0, count: group.length };
+    }).filter((d) => d.count > 0);
+    const roleData = POST_ROLES.map((role) => {
+      const group = posts.filter((p) => p.role === role);
+      return { role, funnel: group.length ? Math.round(group.reduce((sum, p) => sum + funnelScore(p, profile), 0) / group.length) : 0, count: group.length };
+    }).filter((d) => d.count > 0);
+    const bestHook = [...hookData].sort((a, b) => b.funnel - a.funnel)[0];
+    const bestRole = [...roleData].sort((a, b) => b.funnel - a.funnel)[0];
+    const nextRec = recommendNextPost(posts, profile);
+    const saleWindows = analyzeSalesWindows(posts, profile);
+    const goldenTime = analyzeGoldenTime(posts, profile);
+    return { funnelSorted, avgEg, avgFunnel, totalClicks, totalSales, timeline, hookData, roleData, bestHook, bestRole, nextRec, saleWindows, goldenTime }; 
+  }, [posts, profile]);
+
+  const tests = useMemo(() => runTests(), []);
+
+  function updateText(value) {
+    const auto = classifyPost(value);
+    setForm((prev) => autoClassify ? { ...prev, text: value, hookType: auto.hookType, role: auto.role, readerPsyche: auto.readerPsyche } : { ...prev, text: value });
+  }
+
+  function addPost() {
+    if (!form.text.trim()) return;
+    const auto = classifyPost(form.text);
+    const next = normalizePost({ ...form, hookType: autoClassify ? auto.hookType : form.hookType, role: autoClassify ? auto.role : form.role, readerPsyche: autoClassify ? auto.readerPsyche : form.readerPsyche });
+    setPosts((prev) => [next, ...prev]);
+    setForm((prev) => ({ ...prev, text: "", likes: "0", replies: "0", reposts: "0", views: "0", fc: "0", noteClicks: "0", noteSales: "0" }));
+  }
+
+  function importCsv() {
+    const parsed = parseCsv(csvText);
+    if (!parsed.length) {
+      setCsvMessage("CSVを読み込めませんでした。ヘッダー行と1件以上のデータを確認してください。");
+      return;
     }
-    load();
-  },[]);
-
-  useEffect(()=>{
-    if(!ready)return;
-    window.storage.set("ka_posts3",JSON.stringify(posts)).catch(()=>{});
-  },[posts,ready]);
-
-  async function saveKey(){
-    setApiKey(apiInput);
-    await window.storage.set("th_key",apiInput).catch(()=>{});
-    setKeySaved(true);setTimeout(()=>setKeySaved(false),2000);
-  }
-  async function saveProfile(){
-    await window.storage.set("ka_profile",JSON.stringify(profile)).catch(()=>{});
-    alert("プロフィールを保存しました");
+    setPosts((prev) => [...parsed, ...prev]);
+    setCsvMessage(`${parsed.length}件を取り込みました。本文からフック・役割・読者心理も自動判定しています。`);
   }
 
-  const stats=useMemo(()=>{
-    const fSorted=[...posts].sort((a,b)=>funnelScore(b)-funnelScore(a));
-    const egSorted=[...posts].sort((a,b)=>eg(b)-eg(a));
-    const avgEG=posts.length?(posts.reduce((s,p)=>s+eg(p),0)/posts.length).toFixed(2):"0.00";
-    const avgFunnel=posts.length?Math.round(posts.reduce((s,p)=>s+funnelScore(p),0)/posts.length):0;
-    const totalClicks=posts.reduce((s,p)=>s+toNum(p.noteClicks),0);
-    const totalSales=posts.reduce((s,p)=>s+toNum(p.noteSales),0);
-    const totalFC=posts.reduce((s,p)=>s+toNum(p.fc),0);
-    const timeline=[...posts].sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(p=>({date:String(p.date||"").slice(5),eg:eg(p),funnel:funnelScore(p),sales:toNum(p.noteSales),fc:toNum(p.fc)}));
-    const hookData=HOOK_TYPES.map(h=>{const g=posts.filter(p=>p.hookType===h);return{h,funnel:g.length?Math.round(g.reduce((s,p)=>s+funnelScore(p),0)/g.length):0,eg:g.length?+(g.reduce((s,p)=>s+eg(p),0)/g.length).toFixed(2):0,n:g.length};}).filter(d=>d.n>0);
-    const roleData=POST_ROLES.map(r=>{const g=posts.filter(p=>p.role===r);return{r,funnel:g.length?Math.round(g.reduce((s,p)=>s+funnelScore(p),0)/g.length):0,n:g.length};}).filter(d=>d.n>0);
-    const hourData=Array.from({length:24},(_,h)=>{const g=posts.filter(p=>+p.time.split(":")[0]===h);return{h:`${h}時`,eg:g.length?+(g.reduce((s,p)=>s+eg(p),0)/g.length).toFixed(2):0,funnel:g.length?Math.round(g.reduce((s,p)=>s+funnelScore(p),0)/g.length):0,n:g.length};});
-    const dayData=DAYS.map((d,i)=>{const g=posts.filter(p=>p.date&&new Date(p.date+"T12:00:00").getDay()===i);return{d,eg:g.length?+(g.reduce((s,p)=>s+eg(p),0)/g.length).toFixed(2):0,n:g.length};});
-    const maxHour=hourData.reduce((m,d)=>d.n>0&&d.funnel>m.funnel?d:m,{h:"",funnel:0,n:0});
-    const nextRec=recommendNext(posts);
-    const saleWindows=analyzeSalesWindows(posts);
-    const bestHook=[...hookData].sort((a,b)=>b.funnel-a.funnel)[0];
-    const bestRole=[...roleData].sort((a,b)=>b.funnel-a.funnel)[0];
-    return{fSorted,egSorted,avgEG,avgFunnel,totalClicks,totalSales,totalFC,timeline,hookData,roleData,hourData,dayData,maxHour,nextRec,saleWindows,bestHook,bestRole};
-  },[posts]);
+  function loadSampleCsv() {
+    setCsvText(["text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales", "\"夫のただいまが怖い人へ。帰宅音で体が固まるなら、まず記録からで大丈夫。\",2026-05-25,21:00,420,56,38,21000,31,22,1", "\"離婚前に知らないと損する4つのお金。生活費、学費、貯金、養育費。\",2026-05-26,12:00,280,24,61,16000,17,34,2"].join(NL));
+  }
 
-  function updateFormText(v){
-    const au=autoClassify(v);
-    setForm(f=>autoFill?{...f,text:v,hookType:au.hookType,role:au.role,readerPsyche:au.readerPsyche}:{...f,text:v});
+  function exportCsv() {
+    setCsvText(postsToCsv(posts));
+    setCsvMessage("現在の投稿データをCSV欄に出力しました。コピーして保存できます。");
   }
-  function addPost(){
-    if(!form.text.trim())return;
-    const au=autoClassify(form.text);
-    setPosts(prev=>[normalize({...form,hookType:autoFill?au.hookType:form.hookType,role:autoFill?au.role:form.role,readerPsyche:autoFill?au.readerPsyche:form.readerPsyche}),...prev]);
-    setForm(f=>({...f,text:"",likes:"0",replies:"0",reposts:"0",views:"0",fc:"0",noteClicks:"0",noteSales:"0"}));
-  }
-  function importCsv(){
-    const p=parseCsv(csvText);
-    if(!p.length){setCsvMsg("読み込めませんでした。ヘッダー行とデータを確認してください。");return;}
-    setPosts(prev=>[...p,...prev]);setCsvMsg(`${p.length}件を取り込みました。`);
-  }
-  function exportCsv(){setCsvText(toCsv(posts));setCsvMsg("現在のデータをCSV欄に出力しました。");}
 
-  async function callAPI(system,user){
-    if(!apiKey)throw new Error("APIキーが未設定です。⚙️設定タブで入力してください。");
-    const res=await fetch("https:
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,system,messages:[{role:"user",content:user}]})
+  function toggleThreadScope(scope) {
+    setThreadsConfig((prev) => {
+      const exists = prev.scopes.includes(scope);
+      return { ...prev, scopes: exists ? prev.scopes.filter((item) => item !== scope) : [...prev.scopes, scope] };
     });
-    const data=await res.json();
-    if(data.error)throw new Error(data.error.message);
-    return data.content?.filter(c=>c.type==="text").map(c=>c.text).join("\n")||"";
   }
 
-  function buildCtx(){
-    const all=stats.fSorted.map(p=>`[${p.date} ${p.time}][${p.hookType}][${p.role}][EG:${eg(p)}%][F:${p.fc>0?"+":""}${p.fc}][クリック率:${clickRate(p)}%][購入率:${salesRate(p)}%][導線:${funnelScore(p)}点] 「${p.text.slice(0,55)}」`).join("\n");
-    const top3=stats.fSorted.slice(0,3).map(p=>`「${p.text.slice(0,60)}」→EG${eg(p)}% 導線${funnelScore(p)}点 クリック${p.noteClicks}件 購入${p.noteSales}件`).join("\n");
-    const bot3=stats.fSorted.slice(-3).map(p=>`「${p.text.slice(0,60)}」→EG${eg(p)}% 導線${funnelScore(p)}点`).join("\n");
-    return{all,top3,bot3};
+  function importThreadsJson() {
+    try {
+      const raw = JSON.parse(threadsJson);
+      const items = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const converted = items.map(normalizeThreadsApiPost).filter((post) => post.text);
+      if (!converted.length) {
+        setThreadsMessage("取り込めるThreads投稿データが見つかりませんでした。配列、または { data: [...] } 形式で貼ってください。");
+        return;
+      }
+      setPosts((prev) => [...converted, ...prev]);
+      setThreadsMessage(`${converted.length}件のThreads風JSONを取り込みました。noteクリック・購入数はあとで手入力してください。`);
+    } catch (error) {
+      setThreadsMessage("JSONの形式を確認してください。カンマ抜けや引用符の崩れがあるかもしれません。");
+    }
   }
 
-  async function runReflection(){
-    setReflectLoading(true);setReflectResult("");
-    try{
-      const MK2=MASTER_KNOWLEDGE;
-      const system=`あなたはThreads運用振り返りコーチ（離婚・モラハラジャンル特化）。ふく（fuku.2025_hpgd）専用で分析します。
-【寝稼ぎ式】${MK2.nekasegi.roadmap.slice(0,3).join("→")}
-【3大フック】おさる式: ${MK2.hookMethods.osaru.core} / 寝稼ぎ式: ${MK2.hookMethods.nekasegi.core} / ヒカさん式: ${MK2.hookMethods.hika.core}
-【振り返り軸】${MK2.reflectionFramework.evaluationAxes.slice(0,4).join("・")}
-【勝ちパターン】${MK2.reflectionFramework.winLosePattern.win}
-人間味MAX、でも数字には厳しめに。`;
-      const user=`【期間】${reflectForm.period||"今日"}\n【投稿内容】${reflectForm.posts_text||"なし"}\n【数字】${reflectForm.numbers||"なし"}\n【伸びた投稿】${reflectForm.win_post||"なし"}\n【弱かった投稿】${reflectForm.lose_post||"なし"}\n【迷い】${reflectForm.concern||"なし"}\n\n分析：1.総合評価(★5段階) 2.伸びた/伸びなかった理由(3手法視点で) 3.フック診断(10点満点+改善案) 4.投稿タイプ分類 5.CTA評価 6.バズ後の橋渡し投稿確認 7.note導線評価 8.次の24時間でやること3つ 9.次に出す投稿全文 10.今日の学び一言で`;
-      const result=await callAPI(system,user);
-      setReflectResult(result);
-    }catch(e){setReflectResult("❌ エラー: "+e.message);}
-    setReflectLoading(false);
+  function loadThreadsSampleJson() {
+    const sample = {
+      data: [
+        { text: "夫のただいまが怖い人へ。まず記録からで大丈夫。", timestamp: "2026-05-25T12:00:00Z", insights: { views: 18000, likes: 420, replies: 56, reposts: 38 } },
+        { text: "離婚前に知らないと損する4つのお金。生活費、学費、貯金、養育費。", timestamp: "2026-05-26T03:00:00Z", insights: { views: 16000, likes: 280, replies: 24, reposts: 61 } },
+      ],
+    };
+    setThreadsJson(JSON.stringify(sample, null, 2));
   }
 
-  async function runGhostReview(){
-    if(!ghostText.trim())return alert("レビューしたい投稿文を入力してください");
-    setGhostLoading(true);setGhostResult("");
-    try{
-      const MK2=MASTER_KNOWLEDGE;
-      const system=`あなたはGhost Reviewer専門家。${MK2.aiTechniques.ghostReviewer.howto}\n${MK2.aiTechniques.ghostReviewer.benefit}`;
-      const user=`【投稿文】\n${ghostText}\n\n4視点レビュー：\n## 視点1：3年後の自分（ブランドとして正解か）\n## 視点2：競合発信者（差別化できているか）\n## 視点3：買わなかった見込み客（何が引っかかったか）\n## 視点4：購入者（信頼残高は上がるか）\n\n最後に：一番直すべき点（1つ）＋改善版の投稿全文`;
-      const result=await callAPI(system,user);
-      setGhostResult(result);
-    }catch(e){setGhostResult("❌ エラー: "+e.message);}
-    setGhostLoading(false);
+  async function syncThreadsFromBackend() {
+    const baseUrl = String(threadsConfig.backendBaseUrl || "").trim().replace(/\/$/, "");
+    if (!baseUrl || baseUrl.includes("your-domain.com")) {
+      setThreadsMessage("バックエンドAPI URLが仮URLのままです。VercelやRenderなどに置いたAPI URLを入れてください。");
+      return;
+    }
+    setThreadsSyncStatus("loading");
+    setThreadsMessage("Threads投稿をバックエンドから取得中です…");
+    try {
+      const response = await fetch(`${baseUrl}/posts`, { method: "GET" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const raw = await response.json();
+      const items = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const converted = items.map(normalizeThreadsApiPost).filter((post) => post.text);
+      if (!converted.length) {
+        setThreadsSyncStatus("error");
+        setThreadsMessage("バックエンドから返ってきたデータに、取り込めるThreads投稿がありませんでした。");
+        return;
+      }
+      setPosts((prev) => [...converted, ...prev]);
+      setThreadsJson(JSON.stringify(raw, null, 2));
+      setThreadsSyncStatus("success");
+      setThreadsMessage(`${converted.length}件をThreadsバックエンドから同期しました。noteクリック・購入数は必要に応じて手入力してください。`);
+    } catch (error) {
+      setThreadsSyncStatus("error");
+      setThreadsMessage(`同期に失敗しました。バックエンドURL、CORS、トークン期限、権限を確認してください。${error?.message ? ` (${error.message})` : ""}`);
+    }
   }
 
-    const ANALYSIS_TYPES=[
-    {id:"full",label:"🔍 総合コンサル診断",desc:"マーケター目線で20項目深堀り"},
-    {id:"content",label:"📊 コンテンツ・発信軸",desc:"伸びた/伸びなかった原因分析"},
-    {id:"mindset",label:"🧠 心理・マインド分析",desc:"ボトルネックと思い込み"},
-    {id:"sales",label:"💰 売上・導線診断",desc:"note・商品の売れる仕組み"},
-    {id:"action",label:"🎯 次の一手（S/A/B別）",desc:"今週・今月のアクション"},
-    {id:"risk",label:"⚠️ リスク診断",desc:"顕在・潜在リスクを洗い出す"},
-    {id:"fan",label:"💜 ファン化6原理診断",desc:"仲間ポジ・属人性・救済etc"},
-    {id:"note",label:"📝 noteタイミング分析",desc:"5STEP設計・売れる出し方"},
-  ];
-
-  const SYSTEMS={
-    full:`あなたは月商1000万円以上を継続する日本トップクラスのSNS×コンテンツマーケティングコンサルタントです。クライアントはThreadsとnoteで稼ぐ「かおり（ふく（fuku.2025_hpgd））」さんです。
-
-【クライアント基本情報】
-${JSON.stringify(FUKU_KNOWLEDGE,null,1)}
-
-【ファン化6原理】
-${EXTENDED_KNOWLEDGE.fanPrinciples.sixPrinciples.map(p=>p.name+": "+p.core).join("\n")}
-
-【noteタイミング5STEP】
-${EXTENDED_KNOWLEDGE.noteTimingSteps.fiveSteps.map(s=>"STEP"+s.step+" "+s.name+": "+s.action).join("\n")}
-
-【影響力・共闘リプ3型】
-${EXTENDED_KNOWLEDGE.influenceStrategy.replyTypes.map(r=>r.name+"→"+r.benefit).join("\n")}
-
-【noteタイトル公式】数字×感情×ギャップ。価格：エスカレーター式。
-
-EG率=(いいね×1+返信×3+リポスト×2)/閲覧×100。バズ≠購入を前提に分析してください。
-
-以下20項目を徹底分析してください（離婚・モラハラジャンル特化）：
-# 1. 総合診断（ふくさんの強みと今すぐ直すべき弱みを率直に）
-# 2. 発信軸評価（『損しないための準備の順番を届けるママ』として一貫しているか）
-# 3. 伸びた投稿の共通パターンと再現性
-# 4. 伸びなかった投稿の原因と改善案
-# 5. EGが高い投稿 vs 購入につながる投稿の違い
-# 6. ゴールデンタイム・曜日の最適化提案
-# 7. フック種類別の効果分析
-# 8. 発信者心理のボトルネック（マインドブロック）
-# 9. 読者心理から見えるボトルネック
-# 10. 売上導線の現状と改善案
-# 11. 商品ラインナップの整理提案
-# 12. 認知→共感→信頼→導線→購入のファネル評価
-# 13. 競合比較・市場ポジション
-# 14. 顕在リスク（今すぐ対処すべき）
-# 15. 潜在リスク（このまま続けると）
-# 16. このまま続けた場合の失敗シナリオ
-# 17. 優先度S（今週中にやること）
-# 18. 優先度A（今月中にやること）
-# 19. 明日からすぐできる改善3つ
-# 20. 次に出すべき投稿テーマ5つ（今すぐ使えるもの）
-
-厳しく、でも愛を持って。褒めるだけでなく「ここが弱い、こう直せ」を具体的に。`,
-
-    content:`Threads投稿の発信軸・コンテンツ戦略専門家として分析：
-クライアント：ふく（fuku.2025_hpgd）（AI×note×副業）
-# 発信軸の評価（何者として認識されているか）
-# コンテンツ種類別効果（遊び・自己開示・実績・ノウハウ・告知）
-# フック別効果比較と最適フック提案
-# バズる投稿 vs noteが売れる投稿の違い
-# 「9286件」という投稿量に対する質の評価
-# 30日でやるべきコンテンツ戦略`,
-
-    mindset:`マーケター兼心理コーチとして分析：
-クライアント：ふく（fuku.2025_hpgd）
-# 投稿傾向から読み取れる心理パターン
-# マインドブロック（無意識の回避・恐れ）
-# 「やりたいこと」と「やってること」のズレ
-# 遊び発信への偏り vs 収益化発信のバランス
-# 承認欲求・完璧主義・比較の影響
-# 月100万安定のための心理的準備`,
-
-    sales:`月商1000万コンサルとして売上導線を徹底診断：
-クライアント：ふく（fuku.2025_hpgd）（AI×note）
-# 現在の発信→購入の導線マップ
-# 認知→共感→信頼→導線→購入のファネル評価
-# noteクリック率・購入率の改善案
-# 商品ラインナップ（1,980〜98,000円）の整理
-# 固定投稿・プロフィール・CTAの改善点
-# 月100万安定のための具体的な仕組み
-# 月300万以上を目指すロードマップ
-# noteタイミング設計：種まき→★→連続投稿→宣言→執筆の5ステップ評価
-# ファン化6原理（仲間ポジ・属人性・途中・信用残高・救済・止まらない）の活用度`,
-
-    action:`行動計画専門家として優先度別に整理：
-クライアント：ふく（fuku.2025_hpgd）
-# 優先度S（今週中・絶対やること）
-# 優先度A（今月中・重要なこと）
-# 優先度B（余裕があればやること）
-# やめるべきこと・減らすべきこと
-# 30日後・90日後の数値目標
-# 明日からすぐできる小さな改善10個`,
-
-    fan:`ファン化×影響力専門コンサルとして分析：
-クライアント：ふく（fuku.2025_hpgd）
-【ファン化6原理の活用度チェック】
-${EXTENDED_KNOWLEDGE.fanPrinciples.sixPrinciples.map(p=>"■"+p.name+": "+p.core).join("\n")}
-
-# 1. 現在の投稿における「仲間ポジション」の徹底度（先生型になっていないか）
-# 2. 属人性の濃度評価（名前を変えても成立する投稿が何割か）
-# 3. 途中を見せる投稿の割合と効果
-# 4. 信用残高の積み上げ状況（1対1の積み重ね評価）
-# 5. 救済型投稿の有無と「未来を見せる」設計
-# 6. 止まらない仕組みができているか（仲間の巻き込み状況）
-# 7. 大手への共闘リプ設計（コバンザメ vs 共闘者の違い）
-# 8. noteタイミング5ステップの実践度
-# 9. 発信軸の一貫性とブランド（煽らない・責めない・盛らない）
-# 10. ファン化加速のための次のアクション5つ`,
-
-    note:`noteタイミング×売上導線専門家として分析：
-クライアント：ふく（fuku.2025_hpgd）
-【noteタイミング5ステップ】
-${EXTENDED_KNOWLEDGE.noteTimingSteps.fiveSteps.map(s=>"STEP"+s.step+" "+s.name+": "+s.action).join("\n")}
-
-# 1. 現在の投稿はどのSTEPに相当するか分類
-# 2. 種まき→需要発見→温度上げ→宣言→執筆の各STEPの穴
-# 3. バズ依存型・ノルマ型・準備過剰型のどれに陥っているか
-# 4. ★をつけるべき投稿（プロフ遷移率・コメント深さ）の評価
-# 5. 連続投稿での温度上げ設計の提案
-# 6. 宣言投稿のタイミングと文言案
-# 7. noteの値付け戦略（エスカレーター式）の提案
-# 8. SNS→固定ポスト→note購入の導線評価
-# 9. 今すぐ種まきすべきテーマ3つ
-# 10. 次に出すべきnoteのタイミング設計（宣言まで含む）`,
-
-    risk:`リスク管理専門家として：
-クライアント：ふく（fuku.2025_hpgd）
-# 顕在リスク（投稿量依存、商品の多さ、ポジション不明確）
-# 潜在リスク（このまま続けると起きること）
-# 失敗シナリオ
-# ブランドリスク（炎上・誤解・信頼棄損）
-# プラットフォームリスク
-# 各リスクへの対処法`,
-  };
-
-  async function runAnalysis(){
-    setAiLoading(true);setAiResult("");
-    try{
-      const ctx=buildCtx();
-      const user=`私（ふく（fuku.2025_hpgd））のThreads投稿データ（${posts.length}件）を分析してください。
-
-【統計サマリー】
-- 平均EG率: ${stats.avgEG}%
-- 平均導線スコア: ${stats.avgFunnel}点
-- 累計F増加: ${stats.totalFC>0?"+":""}${stats.totalFC}
-- 累計noteクリック: ${stats.totalClicks}件
-- 累計note購入: ${stats.totalSales}件
-- ゴールデンタイム: ${stats.maxHour.n>0?stats.maxHour.h:"データ不足"}
-- 強いフック: ${stats.bestHook?.h||"データ不足"}
-- 強い役割: ${stats.bestRole?.r||"データ不足"}
-
-【導線スコアTOP3】
-${ctx.top3}
-
-【要改善投稿】
-${ctx.bot3}
-
-【全投稿データ】
-${ctx.all}
-
-データに基づいて断言してください。「〜かもしれません」より「〜です、なぜなら〜」で。`;
-      const result=await callAPI(SYSTEMS[analysisType]||SYSTEMS.full,user);
-      setAiResult(result);
-    }catch(e){setAiResult("❌ エラー: "+e.message);}
-    setAiLoading(false);
+  function generateFukuAdvice() {
+    const top = stats.funnelSorted[0];
+    const weak = stats.funnelSorted[stats.funnelSorted.length - 1];
+    if (!top) return ["投稿データを追加すると、ふく式ナレッジに沿った分析が表示されます。"];
+    return [
+      `導線として一番強い投稿は「${top.text.slice(0, 32)}…」。導線スコアは${funnelScore(top, profile)}点です。`,
+      `今の勝ち筋は「${stats.bestHook?.hook || "共感型"}」×「${stats.bestRole?.role || "導線"}」。共感だけで終わらせず、準備・note・プロフィールへの橋を置く投稿が強いです。`,
+      weak ? `弱い投稿は「${weak.text.slice(0, 32)}…」。読者の今の痛みか次の一歩が薄い可能性があります。` : "弱い投稿の判定には、もう少しデータが必要です。",
+      `次に出すべき投稿は「${stats.nextRec.hook}」×「${stats.nextRec.role}」。理由：${stats.nextRec.reason}`,
+      `忘れない軸：${profile.mainMessage}`,
+    ];
   }
 
-  async function generatePosts(){
-    if(!genForm.theme.trim())return alert("テーマを入力してください");
-    setGenLoading(true);setGenResult("");
-    try{
-      const ctx=buildCtx();
-      const result=await callAPI(
-        `あなたはThreads専門の一流コピーライター。ふく（fuku.2025_hpgd）（AI×note×副業）の文体を完璧に模倣する。
-ルール：冒頭1行が命・do精神・かわいい×AI×稼ぐ・売り込み感ゼロ・自然なCTA・改行効果的。
-クライアントナレッジ：${JSON.stringify({winningPatterns:FUKU_KNOWLEDGE.winningPatterns,hookRules:FUKU_KNOWLEDGE.hookRules,noteBridge:FUKU_KNOWLEDGE.noteBridge,avoid:FUKU_KNOWLEDGE.avoid},null,1)}`,
-        `私のThreadsに合った投稿案を生成してください。
-
-【私のTOP投稿（トーン参考）】
-${ctx.top3}
-
-【条件】
-テーマ：${genForm.theme}
-フック：${genForm.tone}
-CTA：${genForm.cta||"なし"}
-商品：${genForm.product||"なし"}
-目的：${genForm.goal}
-
-【5パターン生成】
-## パターン1：超短文インパクト型（80文字以内）
-## パターン2：共感ストーリー型（180文字程度）
-## パターン3：数字・実績型（150文字程度）
-## パターン4：逆説・気づき型（120文字程度）
-## パターン5：note導線型（200文字程度・CTAをナチュラルに）
-
-各パターン後に：
-▶ なぜこのフックが効くか（1行）
-▶ 最適な投稿時間帯（1行）`
-      );
-      setGenResult(result);
-    }catch(e){setGenResult("❌ エラー: "+e.message);}
-    setGenLoading(false);
+  function generateDrafts() {
+    const theme = draftTheme.trim() || "離婚前の準備";
+    return [
+      ["【共感型】", `${theme}って、経験した人にしかわからない怖さがある。`, "", "でもね、今すぐ離婚を決めなくていい。", "まずは、自分と子どもを守る材料を集めるだけでいい。"].join(NL),
+      ["【情報緊急型】", "離婚前に知らないと損する人が多いです。", "", `${theme}で苦しい時ほど、感情で動く前に`, "・お金", "・証拠", "・住まい", "・子どもの生活", "この4つだけ先に確認して。"].join(NL),
+      ["【導線型】", `最近、${theme}について同じ相談が増えています。`, "", "だから、私が調停前にやってよかった準備をまとめました。", "必要であれば、プロフィールのnoteから見てみてください。"].join(NL),
+      ["【診断型】", "これ、当てはまる？", "", "・夫の機嫌で予定が変わる", "・帰宅音で体が固まる", "・生活費の話をすると責められる", "・離婚したいのにお金が怖い", "", "ひとつでもあるなら、まず準備からで大丈夫。"].join(NL),
+    ];
   }
 
-  async function syncFromBackend(){
-    const url=String(threadsConfig.backendUrl||"").trim().replace(/\/$/,"");
-    if(!url||url.includes("your-domain.com")){setThreadsMsg("バックエンドURLが仮URLのままです。");return;}
-    setSyncStatus("loading");setThreadsMsg("取得中...");
-    try{
-      const res=await fetch(`${url}/posts`);
-      if(!res.ok)throw new Error(`HTTP ${res.status}`);
-      const raw=await res.json();
-      const items=Array.isArray(raw)?raw:Array.isArray(raw?.data)?raw.data:[];
-      const converted=items.map(normalizeThreadsItem).filter(p=>p.text);
-      if(!converted.length){setSyncStatus("error");setThreadsMsg("取り込めるデータがありませんでした。");return;}
-      setPosts(prev=>[...converted,...prev]);
-      setThreadsJson(JSON.stringify(raw,null,2));
-      setSyncStatus("success");setThreadsMsg(`${converted.length}件を同期しました。noteクリック・購入数は手入力してください。`);
-    }catch(e){setSyncStatus("error");setThreadsMsg(`同期失敗: ${e.message}`);}
-  }
+  const tabButtonClass = (name) => `tabButton ${tab === name ? "active" : ""}`;
 
-  function importThreadsJson(){
-    try{
-      const raw=JSON.parse(threadsJson);
-      const items=Array.isArray(raw)?raw:Array.isArray(raw?.data)?raw.data:[];
-      const converted=items.map(normalizeThreadsItem).filter(p=>p.text);
-      if(!converted.length){setThreadsMsg("取り込めるデータが見つかりませんでした。");return;}
-      setPosts(prev=>[...converted,...prev]);
-      setThreadsMsg(`${converted.length}件を取り込みました。noteクリック・購入数は手入力してください。`);
-    }catch(e){setThreadsMsg("JSONの形式を確認してください: "+e.message);}
-  }
+  return (
+    <div className="appShell">
+      <style>{`
+        :root {
+          --bg: #fbf7f4;
+          --card: rgba(255, 253, 250, 0.86);
+          --line: rgba(222, 207, 198, .72);
+          --line2: rgba(216, 199, 193, .82);
+          --text: #4f4646;
+          --text2: #8a7b78;
+          --muted: #b8aaa6;
+          --pink: #c46a91;
+          --purple: #8f73b8;
+          --orange: #c98251;
+          --green: #6a9b82;
+          --blue: #6f8ead;
+          --grad: linear-gradient(135deg, #c56c93 0%, #9b79b8 58%, #7c6fa8 100%);
+          --shadow: 0 24px 70px rgba(122, 91, 83, .10);
+          --shadow2: 0 14px 38px rgba(128, 98, 91, .08);
+          --radius: 28px;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); }
+        .appShell {
+          min-height: 100vh;
+          color: var(--text);
+          font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+          background:
+            radial-gradient(circle at 8% 0%, rgba(255, 243, 235, .78), transparent 30%),
+            radial-gradient(circle at 88% 8%, rgba(238, 229, 247, .74), transparent 31%),
+            radial-gradient(circle at 50% 100%, rgba(250, 239, 230, .78), transparent 38%),
+            linear-gradient(135deg, #fbf7f4 0%, #faf6f8 48%, #fff9f3 100%);
+        }
+        .header {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          border-bottom: 1px solid rgba(222, 207, 198, .62);
+          background: rgba(255, 252, 248, .72);
+          backdrop-filter: blur(22px) saturate(1.08);
+        }
+        .headerInner {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 18px 22px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+        }
+        .title {
+          margin: 0;
+          font-size: 27px;
+          font-weight: 860;
+          letter-spacing: -0.045em;
+          line-height: 1.05;
+          color: #7b5d74;
+        }
+        .subtitle {
+          margin: 7px 0 0;
+          color: #9b8c88;
+          font-size: 12px;
+          font-weight: 620;
+          letter-spacing: .03em;
+        }
+        .brandMark {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          margin-right: 8px;
+          border-radius: 13px;
+          background: linear-gradient(135deg, #fff, #f8eee8);
+          box-shadow: 0 12px 28px rgba(122, 91, 83, .10);
+          vertical-align: -4px;
+        }
+        .tabs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+          padding: 8px;
+          border: 1px solid rgba(222, 207, 198, .7);
+          border-radius: 999px;
+          background: rgba(255, 253, 250, .64);
+          box-shadow: 0 16px 42px rgba(122, 91, 83, .07);
+        }
+        .tabButton, .primaryButton, .ghostButton, .dangerButton {
+          border: 0;
+          border-radius: 999px;
+          padding: 11px 16px;
+          font-weight: 760;
+          cursor: pointer;
+          font-family: inherit;
+          transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
+          white-space: nowrap;
+        }
+        .tabButton {
+          background: transparent;
+          color: #8c7d78;
+          border: 1px solid transparent;
+        }
+        .tabButton:hover { background: rgba(255,255,255,.72); color: var(--text); transform: translateY(-1px); }
+        .tabButton.active, .primaryButton {
+          color: #fff;
+          background: var(--grad);
+          box-shadow: 0 14px 26px rgba(122, 91, 83, .16);
+        }
+        .primaryButton:hover, .ghostButton:hover, .dangerButton:hover { transform: translateY(-1px); }
+        .primaryButton:disabled { opacity: .58; cursor: not-allowed; transform: none; }
+        .ghostButton {
+          background: rgba(248, 242, 238, .92);
+          color: #7d6879;
+          border: 1px solid rgba(222, 207, 198, .82);
+        }
+        .dangerButton {
+          background: rgba(255, 243, 245, .84);
+          color: #b15f72;
+          border: 1px solid rgba(231, 197, 204, .72);
+        }
+        .main {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 28px 22px 60px;
+        }
+        .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+        .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        .grid3 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+        .inputGrid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 20px; align-items: start; }
+        .card {
+          position: relative;
+          overflow: hidden;
+          background: var(--card);
+          border: 1px solid var(--line);
+          border-radius: var(--radius);
+          padding: 24px;
+          box-shadow: var(--shadow2);
+          backdrop-filter: blur(18px) saturate(1.04);
+        }
+        .card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(135deg, rgba(255,255,255,.54), rgba(255,255,255,0) 42%);
+        }
+        .card > * { position: relative; z-index: 1; }
+        .statCard {
+          min-height: 132px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          border-radius: 26px;
+          background: rgba(255, 253, 250, .72);
+        }
+        .statIcon {
+          width: 38px;
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(250, 241, 236, .88);
+          margin-bottom: 10px;
+          font-size: 19px;
+          box-shadow: inset 0 0 0 1px rgba(222, 207, 198, .78);
+        }
+        .statLabel {
+          margin: 0;
+          font-size: 12px;
+          font-weight: 760;
+          color: var(--text2);
+          letter-spacing: .06em;
+        }
+        .statValue {
+          margin: 9px 0 0;
+          font-size: 30px;
+          line-height: 1.08;
+          font-weight: 820;
+          letter-spacing: -0.04em;
+          color: var(--pink);
+        }
+        .tone-purple .statValue { color: var(--purple); }
+        .tone-orange .statValue { color: var(--orange); }
+        .tone-green .statValue { color: var(--green); }
+        .tone-blue .statValue { color: var(--blue); }
+        .tone-purple .statIcon { background: #f3eef7; }
+        .tone-orange .statIcon { background: #fbf0e7; }
+        .tone-green .statIcon { background: #eef6f0; }
+        .tone-blue .statIcon { background: #edf3f8; }
+        .note {
+          margin: 6px 0 0;
+          color: var(--text2);
+          font-size: 12px;
+          line-height: 1.75;
+          font-weight: 560;
+        }
+        .sectionTitle {
+          margin: 0 0 16px;
+          font-size: 17px;
+          font-weight: 780;
+          color: #7b5d74;
+          letter-spacing: -0.02em;
+        }
+        .stack { display: flex; flex-direction: column; gap: 14px; }
+        .postItem, .knowledgeItem {
+          border: 1px solid rgba(222, 207, 198, .72);
+          border-radius: 22px;
+          background: rgba(255, 253, 250, .76);
+          padding: 17px;
+          box-shadow: 0 10px 26px rgba(122, 91, 83, .055);
+        }
+        .postItem { border-left: 4px solid rgba(196, 106, 145, .42); }
+        .postTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .postText { margin: 0; font-size: 14px; line-height: 1.85; white-space: pre-wrap; color: var(--text); font-weight: 560; }
+        .meta { margin: 11px 0 0; font-size: 12px; color: var(--text2); font-weight: 620; }
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          background: rgba(248, 239, 244, .84);
+          padding: 5px 10px;
+          color: #9f6280;
+          font-size: 12px;
+          font-weight: 720;
+          box-shadow: inset 0 0 0 1px rgba(226, 204, 214, .78);
+        }
+        .rank { color: #9f6280; font-weight: 800; }
+        .egPill {
+          border-radius: 999px;
+          background: rgba(238, 247, 241, .9);
+          color: #5f9378;
+          padding: 7px 11px;
+          font-size: 13px;
+          font-weight: 760;
+          white-space: nowrap;
+          box-shadow: inset 0 0 0 1px #d8eadf;
+        }
+        .advice {
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(255, 248, 244, .86), rgba(247, 242, 249, .86));
+          border: 1px solid rgba(222, 207, 198, .74);
+          padding: 15px;
+          font-size: 14px;
+          line-height: 1.8;
+          color: #5c4d4e;
+          font-weight: 560;
+        }
+        .profileBox {
+          border-radius: 20px;
+          background: rgba(248, 244, 250, .8);
+          border: 1px solid rgba(220, 207, 226, .72);
+          padding: 15px;
+        }
+        .smallLabel {
+          display: block;
+          margin: 0 0 8px;
+          color: #9a8b86;
+          font-size: 12px;
+          font-weight: 720;
+          letter-spacing: .03em;
+        }
+        input, textarea, select {
+          width: 100%;
+          border: 1px solid var(--line2);
+          border-radius: 18px;
+          background: rgba(255, 252, 249, .86);
+          color: var(--text);
+          padding: 13px 14px;
+          font: inherit;
+          outline: none;
+          font-weight: 560;
+          transition: box-shadow .18s ease, border-color .18s ease, background .18s ease;
+        }
+        textarea { min-height: 120px; resize: vertical; line-height: 1.75; }
+        input::placeholder, textarea::placeholder { color: #b8aaa6; }
+        input:focus, textarea:focus, select:focus {
+          border-color: #c7aab0;
+          box-shadow: 0 0 0 4px rgba(122, 91, 83, .09);
+          background: #fff;
+        }
+        .formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+        .buttonRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .tooltip {
+          background: #fffdfb;
+          border: 1px solid rgba(222, 207, 198, .78);
+          border-radius: 14px;
+          padding: 11px;
+          font-size: 12px;
+          box-shadow: 0 14px 30px rgba(122,91,83,.11);
+          color: var(--text);
+        }
+        .testPass { color: #5f9378; font-weight: 760; }
+        .testFail { color: #b15f72; font-weight: 760; }
+        .scoreWrap { height: 9px; border-radius: 999px; background: #f0e7ed; overflow: hidden; margin-top: 10px; }
+        .scoreFill { height: 100%; border-radius: 999px; background: var(--grad); }
+        .knowledgeList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .copyBox {
+          background: linear-gradient(135deg, #52424c, #3a3138);
+          color: #fff;
+          border-radius: 22px;
+          padding: 18px;
+          white-space: pre-wrap;
+          line-height: 1.85;
+          font-size: 14px;
+          font-weight: 560;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 12px 30px rgba(55, 30, 70, .14);
+        }
+        .switchRow { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: #766967; }
+        .miniGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .heroCard {
+          background: linear-gradient(135deg, rgba(255,255,255,.78), rgba(250,244,240,.82));
+          border: 1px solid rgba(222, 207, 198, .72);
+        }
+        .softDivider { height: 1px; background: linear-gradient(90deg, transparent, rgba(222, 207, 198, .9), transparent); margin: 2px 0; }
+        .emptyGlow {
+          min-height: 230px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          border-radius: 24px;
+          border: 1px dashed rgba(222, 207, 198, .9);
+          background: rgba(255, 252, 249, .72);
+          color: var(--text2);
+          font-weight: 650;
+        }
+        @media (max-width: 980px) {
+          .grid4, .grid2, .grid3, .inputGrid, .knowledgeList, .miniGrid { grid-template-columns: 1fr; }
+          .headerInner { align-items: flex-start; flex-direction: column; }
+          .tabs { justify-content: flex-start; border-radius: 24px; }
+          .title { font-size: 24px; }
+        }
+      `}</style>
 
-  function loadSampleJson(){
-    setThreadsJson(JSON.stringify({data:[
-      {text:"ChatGPTに世界観を学習させてカルーセルを10秒で作る方法。知らないと損すぎる。",timestamp:"2026-05-25T03:00:00Z",insights:{views:32000,likes:523,replies:89,reposts:145}},
-      {text:"2ヶ月で売上500万円になった。でも最初の3ヶ月は1円も稼げなかった。",timestamp:"2026-05-26T12:00:00Z",insights:{views:48000,likes:789,replies:167,reposts:234}},
-    ]},null,2));
-  }
-
-  const authUrl=buildAuthUrl(threadsConfig);
-  const authIssues=authDiagnostics(threadsConfig);
-
-  const TABS=[
-    {id:"dashboard",label:"📊 分析"},
-    {id:"input",label:"✍️ 入力"},
-    {id:"csv",label:"📋 CSV"},
-    {id:"reflection",label:"🔄 振り返り"},
-    {id:"ghost",label:"👻 Ghost Review"},
-    {id:"threads",label:"🔗 Threads連携"},
-    {id:"analysis",label:"🧠 AI深層分析"},
-    {id:"generate",label:"✨ 投稿生成"},
-    {id:"sales",label:"💰 売れた前後"},
-    {id:"knowledge",label:"📚 ナレッジ"},
-    {id:"settings",label:"⚙️ 設定"},
-  ];
-
-  const GRAD="linear-gradient(135deg,#e8417a,#8b35cc)";
-  const egColor=v=>v>=2?C.green:v>=1?C.gold:C.red;
-  const fcColor=v=>v>0?C.green:v<0?C.red:C.muted;
-
-  return(
-    <div style={{background:C.bg,minHeight:"100vh",color:C.text,fontFamily:'"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif',fontSize:14}}>
-
-      <div style={{background:"linear-gradient(135deg,#fff0f8 0%,#f5eeff 50%,#fff4ee 100%)",borderBottom:`1.5px solid ${C.border}`,padding:"0 16px",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(180,100,220,0.08)"}}>
-        <div style={{maxWidth:1200,margin:"0 auto",display:"flex",alignItems:"center",gap:6,minHeight:56,flexWrap:"wrap",padding:"8px 0"}}>
-          <div style={{fontWeight:900,fontSize:18,marginRight:8,whiteSpace:"nowrap",background:GRAD,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
-            ✦ kaori's Threads Funnel
+      <header className="header">
+        <div className="headerInner">
+          <div><h1 className="title"><span className="brandMark">✦</span>Threads Analyzer</h1><p className="subtitle">ふくさん専用｜投稿・導線・note販売までふわっと見える化</p></div>
+          <div className="tabs">
+            <button className={tabButtonClass("dashboard")} onClick={() => setTab("dashboard")}>📊 ダッシュボード</button>
+            <button className={tabButtonClass("input")} onClick={() => setTab("input")}>✍️ 投稿入力</button>
+            <button className={tabButtonClass("csv")} onClick={() => setTab("csv")}>📁 CSV</button>
+            <button className={tabButtonClass("threads")} onClick={() => setTab("threads")}>🔗 Threads連携</button>
+            <button className={tabButtonClass("next")} onClick={() => setTab("next")}>🧭 次の一手</button>
+            <button className={tabButtonClass("sales")} onClick={() => setTab("sales")}>💎 売れた前後</button>
+            <button className={tabButtonClass("knowledge")} onClick={() => setTab("knowledge")}>🧠 ナレッジ</button>
+            <button className={tabButtonClass("drafts")} onClick={() => setTab("drafts")}>✨ 投稿生成</button>
+            <button className={tabButtonClass("profile")} onClick={() => setTab("profile")}>⚙️ 設定</button>
+            <button className={tabButtonClass("tests")} onClick={() => setTab("tests")}>🧪 テスト</button>
           </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:5,flex:1}}>
-            {TABS.map(t=>(
-              <button key={t.id} onClick={()=>setTab(t.id)} style={{
-                background:tab===t.id?GRAD:"transparent",
-                color:tab===t.id?"#fff":C.sub,
-                border:tab===t.id?"none":`1.5px solid ${C.border}`,
-                borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",whiteSpace:"nowrap",
-                boxShadow:tab===t.id?"0 3px 12px rgba(139,53,204,0.25)":"none",
-              }}>{t.label}</button>
-            ))}
-          </div>
-          <div style={{fontSize:11,color:C.muted,background:C.purpleBg,padding:"4px 10px",borderRadius:20,whiteSpace:"nowrap"}}>{posts.length}件</div>
         </div>
-      </div>
+      </header>
 
-      <div style={{maxWidth:1200,margin:"0 auto",padding:16}}>
-
-        {tab==="dashboard"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-            <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
-              {[
-                {label:"投稿数",v:posts.length+"件",c:C.purple,bg:C.purpleBg,icon:"📝"},
-                {label:"平均EG率",v:stats.avgEG+"%",c:C.pink,bg:C.pinkBg,icon:"💫"},
-                {label:"平均導線スコア",v:stats.avgFunnel+"点",c:C.purple,bg:C.purpleBg,icon:"🎯"},
-                {label:"累計note購入",v:stats.totalSales+"件",c:C.orange,bg:C.orangeBg,icon:"💰"},
-                {label:"累計F増加",v:(stats.totalFC>0?"+":"")+stats.totalFC,c:C.green,bg:C.greenBg,icon:"👥"},
-                {label:"ゴールデンタイム",v:stats.maxHour.n>0?stats.maxHour.h:"データ不足",c:C.gold,bg:C.goldBg,icon:"⏰"},
-              ].map((k,i)=>(
-                <div key={i} style={{...card,textAlign:"center",padding:14,background:`linear-gradient(135deg,#fff,${k.bg})`,borderColor:k.c+"33"}}>
-                  <div style={{fontSize:18,marginBottom:3}}>{k.icon}</div>
-                  <div style={{fontSize:9,color:C.muted,fontWeight:800,letterSpacing:"0.06em",marginBottom:5}}>{k.label}</div>
-                  <div style={{fontSize:18,fontWeight:900,color:k.c}}>{k.v}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={card}>
-                <SectionTitle icon="📈" title="EG率・導線スコアの推移" color={C.pink}/>
-                <ResponsiveContainer width="100%" height={190}>
-                  <LineChart data={stats.timeline}>
-                    <CartesianGrid stroke={C.border} strokeDasharray="3 3"/>
-                    <XAxis dataKey="date" stroke={C.muted} tick={{fontSize:10,fill:C.muted}}/>
-                    <YAxis stroke={C.muted} tick={{fontSize:10,fill:C.muted}}/>
-                    <Tooltip content={<Tooltip2/>}/>
-                    <Line type="monotone" dataKey="eg" stroke={C.pink} strokeWidth={2.5} dot={{fill:C.pink,r:3}} name="EG率%"/>
-                    <Line type="monotone" dataKey="funnel" stroke={C.purple} strokeWidth={2.5} dot={{fill:C.purple,r:3}} name="導線スコア"/>
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={card}>
-                <SectionTitle icon="👥" title="フォロワー増減・note購入" color={C.purple}/>
-                <ResponsiveContainer width="100%" height={190}>
-                  <BarChart data={stats.timeline}>
-                    <CartesianGrid stroke={C.border} strokeDasharray="3 3"/>
-                    <XAxis dataKey="date" stroke={C.muted} tick={{fontSize:10,fill:C.muted}}/>
-                    <YAxis stroke={C.muted} tick={{fontSize:10,fill:C.muted}}/>
-                    <Tooltip content={<Tooltip2/>}/>
-                    <Bar dataKey="fc" name="F増減" radius={[4,4,0,0]}>{stats.timeline.map((d,i)=><Cell key={i} fill={d.fc>=0?C.green:C.red}/>)}</Bar>
-                    <Bar dataKey="sales" name="note購入" fill={C.orange} radius={[4,4,0,0]}/>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-              <div style={card}>
-                <SectionTitle icon="⏰" title="時間帯別EG率" color={C.orange}/>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={stats.hourData.filter(d=>d.n>0)} layout="vertical">
-                    <XAxis type="number" stroke={C.muted} tick={{fontSize:9,fill:C.muted}}/>
-                    <YAxis dataKey="h" type="category" stroke={C.muted} tick={{fontSize:9,fill:C.muted}} width={30}/>
-                    <Tooltip content={<Tooltip2/>}/>
-                    <Bar dataKey="eg" name="EG率%" radius={[0,4,4,0]}>{stats.hourData.filter(d=>d.n>0).map((d,i)=><Cell key={i} fill={d.h===stats.maxHour.h?C.orange:C.purpleL} fillOpacity={d.h===stats.maxHour.h?1:0.6}/>)}</Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={card}>
-                <SectionTitle icon="🎣" title="フック別・導線の強さ" color={C.pink}/>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={stats.hookData} layout="vertical">
-                    <XAxis type="number" stroke={C.muted} tick={{fontSize:9,fill:C.muted}}/>
-                    <YAxis dataKey="h" type="category" stroke={C.muted} tick={{fontSize:9,fill:C.muted}} width={60}/>
-                    <Tooltip content={<Tooltip2/>}/>
-                    <Bar dataKey="funnel" name="導線スコア" radius={[0,4,4,0]}>{stats.hookData.map((_,i)=><Cell key={i} fill={[C.pink,C.purple,C.orange,C.green,C.purpleL,C.pinkL,C.gold,C.orangeL][i%8]}/>)}</Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={card}>
-                <SectionTitle icon="📅" title="曜日別EG率" color={C.purple}/>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={stats.dayData}>
-                    <CartesianGrid stroke={C.border} strokeDasharray="3 3"/>
-                    <XAxis dataKey="d" stroke={C.muted} tick={{fontSize:11,fill:C.muted}}/>
-                    <YAxis stroke={C.muted} tick={{fontSize:9,fill:C.muted}}/>
-                    <Tooltip content={<Tooltip2/>}/>
-                    <Bar dataKey="eg" name="EG率%" radius={[4,4,0,0]}>{stats.dayData.map((d,i)=><Cell key={i} fill={C.pink} fillOpacity={d.eg>0?Math.min(0.3+d.eg*0.2,1):0.1}/>)}</Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[
-                {label:"🏆 導線スコアTOP3",color:C.green,bg:C.greenBg,data:stats.fSorted.slice(0,3)},
-                {label:"📉 要改善投稿",color:C.red,bg:C.redBg,data:stats.fSorted.slice(-3).reverse()},
-              ].map((sec,si)=>(
-                <div key={si} style={{...card,borderColor:sec.color+"33"}}>
-                  <SectionTitle icon="" title={sec.label} color={sec.color}/>
-                  {sec.data.map((p,i)=>(
-                    <div key={p.id} style={{background:sec.bg,borderRadius:12,padding:12,marginBottom:8}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                        <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-                          <span style={{fontSize:10,color:C.muted}}>{p.date} {p.time}</span>
-                          <Badge color={C.purple} bg={C.purpleBg}>{p.hookType}</Badge>
-                          <Badge color={C.orange} bg={C.orangeBg}>{p.role}</Badge>
-                        </div>
-                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <span style={{color:egColor(eg(p)),fontWeight:900,fontSize:12,background:sec.bg,padding:"2px 7px",borderRadius:8}}>EG {eg(p)}%</span>
-                          <span style={{color:C.purple,fontWeight:900,fontSize:12}}>導{funnelScore(p)}点</span>
-                        </div>
-                      </div>
-                      <div style={{fontSize:13,lineHeight:1.6,marginBottom:5}}>{p.text.slice(0,60)}{p.text.length>60?"…":""}</div>
-                      <div style={{display:"flex",gap:8,fontSize:11,color:C.muted}}>
-                        <span>❤️{p.likes}</span><span>💬{p.replies}</span><span>🔁{p.reposts}</span><span>👀{(p.views||0).toLocaleString()}</span>
-                        <span>📎{p.noteClicks}click</span><span style={{color:C.orange,fontWeight:700}}>💰{p.noteSales}件</span>
-                        {p.fc!==0&&<span style={{color:fcColor(p.fc),fontWeight:700}}>F{p.fc>0?"+":""}{p.fc}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+      <main className="main">
+        {tab === "dashboard" && (
+          <div className="stack">
+            <div className="grid4"><StatCard icon="📝" tone="purple" label="総投稿数" value={`${posts.length}件`} /><StatCard icon="💫" tone="pink" label="平均EG率" value={`${stats.avgEg}%`} note="いいね＋返信×3＋リポスト×2" /><StatCard icon="🕯️" tone="orange" label="私だけのゴールデンタイム" value={stats.goldenTime.bestLabel} note={`${stats.goldenTime.bestBand} / 信頼度${stats.goldenTime.confidence}%`} /><StatCard icon="💎" tone="green" label="note成果" value={`${stats.totalClicks}クリック / ${stats.totalSales}部`} /></div>
+            <div className="grid2"><Card><h2 className="sectionTitle">🕯️ 私だけのゴールデンタイム</h2><div className="profileBox"><span className="smallLabel">今いちばん強い時間</span><p className="postText" style={{ fontSize: 22, fontWeight: 820 }}>{stats.goldenTime.bestLabel}台</p><p className="note">{stats.goldenTime.insight}</p></div><div className="stack" style={{ marginTop: 14 }}>{stats.goldenTime.ranking.length ? stats.goldenTime.ranking.map((item, index) => <div key={item.hour} className="knowledgeItem"><div className="postTop"><div><strong>#{index + 1} {item.label}台</strong><br /><span className="note">{item.band}・投稿{item.count}件・信頼度{item.confidence}%</span></div><span className="egPill">勝ち時間 {item.score}点</span></div><ScoreBar score={clamp(item.score, 0, 100)} /><p className="meta">平均EG {item.avgEg}% / 平均導線 {item.avgFunnel}点 / noteクリック {item.clicks} / 購入 {item.sales}</p></div>) : <div className="emptyGlow">投稿時間を入れると、勝ち時間ランキングが出ます。</div>}</div></Card><Card><h2 className="sectionTitle">EG率と導線スコアの推移</h2><ResponsiveContainer width="100%" height={250}><LineChart data={stats.timeline}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis /><Tooltip content={<CustomTooltip />} /><Line type="monotone" dataKey="eg" name="EG率" stroke="#c46a91" strokeWidth={3} dot={{ r: 4 }} /><Line type="monotone" dataKey="funnel" name="導線スコア" stroke="#8f73b8" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer></Card><Card><h2 className="sectionTitle">フック別：導線の強さ</h2><ResponsiveContainer width="100%" height={250}><BarChart data={stats.hookData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="hook" /><YAxis /><Tooltip content={<CustomTooltip />} /><Bar dataKey="funnel" name="導線スコア" fill="#8f73b8" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer></Card></div>
+            <div className="grid2"><Card><h2 className="sectionTitle">投稿役割別：noteに近い投稿</h2><ResponsiveContainer width="100%" height={230}><BarChart data={stats.roleData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="role" /><YAxis /><Tooltip content={<CustomTooltip />} /><Bar dataKey="funnel" name="導線スコア" fill="#c98251" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer></Card><Card><h2 className="sectionTitle">ふく式診断</h2><div className="stack">{generateFukuAdvice().map((item, index) => <div key={index} className="advice">{item}</div>)}</div></Card></div>
+            <div className="grid3"><Card><h2 className="sectionTitle">導線スコアランキング</h2><div className="stack">{stats.funnelSorted.map((post, index) => <div key={post.id} className="postItem"><div className="postTop"><div className="buttonRow"><span className="rank">#{index + 1}</span><Badge>{post.hookType}</Badge><Badge>{post.role}</Badge><Badge>{post.readerPsyche}</Badge></div><span className="egPill">導線 {funnelScore(post, profile)}点</span></div><ScoreBar score={funnelScore(post, profile)} /><p className="postText" style={{ marginTop: 12 }}>{post.text}</p><p className="meta">EG {engagementRate(post)}% / noteクリック率 {clickRate(post)}% / note購入率 {salesRate(post)}% / {post.date} {post.time}</p></div>)}</div></Card><Card><h2 className="sectionTitle">インプと購入は別で見る</h2><div className="profileBox"><span className="smallLabel">ふく式の前提</span><p className="postText" style={{ fontWeight: 800 }}>{FUKU_KNOWLEDGE.funnelRule}</p></div><div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">ターゲット</span><p className="postText" style={{ fontWeight: 800 }}>{profile.target}</p></div><div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">メインメッセージ</span><p className="postText" style={{ fontWeight: 800 }}>{profile.mainMessage}</p></div></Card></div>
           </div>
         )}
 
-        {tab==="input"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1.5fr",gap:16}}>
-            <div style={card}>
-              <SectionTitle icon="＋" title="投稿を追加" color={C.pink}/>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,fontSize:13,color:C.sub}}>
-                <input type="checkbox" checked={autoFill} onChange={e=>setAutoFill(e.target.checked)} style={{width:16}}/>
-                <span style={{fontWeight:700}}>本文から自動分類する</span>
-              </div>
-              <div style={{marginBottom:10}}>
-                <label style={lbl}>投稿本文 *</label>
-                <textarea value={form.text} onChange={e=>updateFormText(e.target.value)} style={{...inp,height:90,resize:"vertical"}} placeholder="投稿内容を入力..."/>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-                <div><label style={lbl}>日付</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={inp}/></div>
-                <div><label style={lbl}>時間</label><input type="time" value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))} style={inp}/></div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:10}}>
-                {[["likes","❤️いいね"],["replies","💬返信"],["reposts","🔁リポスト"],["views","👀閲覧数"],["fc","F増減"],["noteClicks","📎クリック"]].map(([k,l])=>(
-                  <div key={k}><label style={lbl}>{l}</label><input type="number" value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={inp} min={k==="fc"?undefined:"0"}/></div>
-                ))}
-              </div>
-              <div style={{marginBottom:10}}>
-                <label style={lbl}>💰 note購入数</label>
-                <input type="number" min="0" value={form.noteSales} onChange={e=>setForm(f=>({...f,noteSales:e.target.value}))} style={inp}/>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-                <div><label style={lbl}>フック</label>
-                  <select value={form.hookType} onChange={e=>setForm(f=>({...f,hookType:e.target.value}))} style={{...inp,cursor:"pointer"}}>
-                    {HOOK_TYPES.map(h=><option key={h}>{h}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>役割</label>
-                  <select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} style={{...inp,cursor:"pointer"}}>
-                    {POST_ROLES.map(r=><option key={r}>{r}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>読者心理</label>
-                  <select value={form.readerPsyche} onChange={e=>setForm(f=>({...f,readerPsyche:e.target.value}))} style={{...inp,cursor:"pointer"}}>
-                    {READER_PSYCHES.map(r=><option key={r}>{r}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <button onClick={addPost} style={{...mkbtn(),flex:1}}>＋ 追加</button>
-                <button onClick={()=>setPosts(SAMPLE_POSTS)} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,boxShadow:"none"}}>サンプル</button>
-                <button onClick={()=>{if(window.confirm("全削除しますか？"))setPosts([]);}} style={{...mkbtn(C.redBg,C.red),border:`1.5px solid ${C.red}44`,boxShadow:"none"}}>全削除</button>
-              </div>
-              <div style={{marginTop:12,padding:12,background:C.purpleBg,borderRadius:10,fontSize:12,color:C.sub,lineHeight:1.8}}>
-                💡 Threadsアプリ → 自分の投稿 →「インサイト」から数値をコピー。noteクリック数はnoteのダッシュボードから確認できます。
-              </div>
-            </div>
-            <div>
-              <div style={{fontWeight:700,marginBottom:10,color:C.sub,fontSize:13}}>投稿一覧（{posts.length}件）導線スコア順</div>
-              <div style={{maxHeight:700,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
-                {stats.fSorted.map((p,i)=>(
-                  <div key={p.id} style={{...card,padding:12,borderLeft:`4px solid ${i<3?C.green:i>=stats.fSorted.length-3?C.red:C.border}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-                      <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-                        <span style={{fontSize:10,color:C.muted}}>{p.date} {p.time}</span>
-                        <Badge color={C.purple} bg={C.purpleBg}>{p.hookType}</Badge>
-                        <Badge color={C.orange} bg={C.orangeBg}>{p.role}</Badge>
-                        {i<3&&<Badge color={C.green} bg={C.greenBg}>TOP</Badge>}
-                      </div>
-                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                        <span style={{fontWeight:900,color:egColor(eg(p)),fontSize:12,padding:"2px 7px",borderRadius:8,background:C.pinkBg}}>EG {eg(p)}%</span>
-                        <span style={{fontWeight:900,color:C.purple,fontSize:12}}>導{funnelScore(p)}点</span>
-                        <button onClick={()=>setPosts(prev=>prev.filter(pp=>pp.id!==p.id))} style={{background:C.redBg,border:"none",color:C.red,cursor:"pointer",fontSize:12,padding:"2px 7px",borderRadius:8}}>×</button>
-                      </div>
-                    </div>
-                    <ScoreBar score={funnelScore(p)}/>
-                    <div style={{fontSize:13,lineHeight:1.6,marginTop:8,marginBottom:5}}>{p.text}</div>
-                    <div style={{display:"flex",gap:8,fontSize:11,color:C.muted,flexWrap:"wrap"}}>
-                      <span>❤️{p.likes}</span><span>💬{p.replies}</span><span>🔁{p.reposts}</span><span>👀{(p.views||0).toLocaleString()}</span>
-                      <span style={{color:C.orange}}>📎{p.noteClicks}click</span><span style={{color:C.orange,fontWeight:700}}>💰{p.noteSales}件</span>
-                      {p.fc!==0&&<span style={{color:fcColor(p.fc),fontWeight:700}}>F{p.fc>0?"+":""}{p.fc}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {tab === "input" && (
+          <div className="inputGrid"><Card><h2 className="sectionTitle">投稿データを追加</h2><div className="stack"><label className="switchRow"><input type="checkbox" checked={autoClassify} onChange={(e) => setAutoClassify(e.target.checked)} style={{ width: 18 }} />本文から自動分類する</label><label><span className="smallLabel">投稿本文</span><textarea value={form.text} onChange={(e) => updateText(e.target.value)} placeholder="投稿本文を入れる" /></label><div className="formGrid"><label><span className="smallLabel">日付</span><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label><span className="smallLabel">時間</span><input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label><label><span className="smallLabel">いいね</span><input type="number" min="0" value={form.likes} onChange={(e) => setForm({ ...form, likes: e.target.value })} /></label><label><span className="smallLabel">返信</span><input type="number" min="0" value={form.replies} onChange={(e) => setForm({ ...form, replies: e.target.value })} /></label><label><span className="smallLabel">リポスト</span><input type="number" min="0" value={form.reposts} onChange={(e) => setForm({ ...form, reposts: e.target.value })} /></label><label><span className="smallLabel">閲覧数</span><input type="number" min="0" value={form.views} onChange={(e) => setForm({ ...form, views: e.target.value })} /></label><label><span className="smallLabel">F増減</span><input type="number" value={form.fc} onChange={(e) => setForm({ ...form, fc: e.target.value })} /></label><label><span className="smallLabel">noteクリック数</span><input type="number" min="0" value={form.noteClicks} onChange={(e) => setForm({ ...form, noteClicks: e.target.value })} /></label><label><span className="smallLabel">note購入数</span><input type="number" min="0" value={form.noteSales} onChange={(e) => setForm({ ...form, noteSales: e.target.value })} /></label><label><span className="smallLabel">フックタイプ</span><select value={form.hookType} onChange={(e) => setForm({ ...form, hookType: e.target.value })}>{HOOK_TYPES.map((hook) => <option key={hook} value={hook}>{hook}</option>)}</select></label><label><span className="smallLabel">投稿の役割</span><select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>{POST_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></label><label><span className="smallLabel">読者心理</span><select value={form.readerPsyche} onChange={(e) => setForm({ ...form, readerPsyche: e.target.value })}>{READER_PSYCHES.map((psyche) => <option key={psyche} value={psyche}>{psyche}</option>)}</select></label></div><div className="buttonRow"><button className="primaryButton" onClick={addPost}>追加する</button><button className="ghostButton" onClick={() => setPosts(SAMPLE_POSTS)}>サンプルに戻す</button><button className="dangerButton" onClick={() => setPosts([])}>全削除</button></div></div></Card><Card><h2 className="sectionTitle">入力済み投稿</h2><div className="stack">{posts.length === 0 ? <p className="note">まだ投稿がありません。</p> : null}{posts.map((post) => <div key={post.id} className="postItem"><div className="postTop"><div className="buttonRow"><Badge>{post.hookType}</Badge><Badge>{post.role}</Badge><Badge>{post.readerPsyche}</Badge></div><button className="dangerButton" onClick={() => setPosts((prev) => prev.filter((p) => p.id !== post.id))}>削除</button></div><p className="postText">{post.text}</p><p className="meta">EG {engagementRate(post)}% / 導線 {funnelScore(post, profile)}点 / note {post.noteClicks || 0}クリック・{post.noteSales || 0}部</p></div>)}</div></Card></div>
         )}
 
-        {tab==="csv"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-            <div style={card}>
-              <SectionTitle icon="📋" title="CSVインポート / エクスポート" color={C.purple}/>
-              <p style={{color:C.sub,fontSize:13,marginBottom:12,lineHeight:1.7}}>ヘッダー行：text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales（hookType/role/readerPsycheは省略可・自動判定）</p>
-              <textarea style={{...inp,height:280,resize:"vertical"}} value={csvText} onChange={e=>setCsvText(e.target.value)} placeholder={CSV_COLS.join(",")}/>
-              <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
-                <button onClick={importCsv} style={mkbtn()}>取り込む</button>
-                <button onClick={()=>{setCsvText(["text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales","\"ChatGPTに世界観を学習させてみた\",2026-05-25,21:00,523,89,145,32000,67,56,3"].join(NL));}} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,boxShadow:"none"}}>サンプル</button>
-                <button onClick={exportCsv} style={{...mkbtn(C.orangeBg,C.orange),border:`1.5px solid ${C.border}`,boxShadow:"none"}}>書き出す</button>
-              </div>
-              {csvMsg&&<div style={{marginTop:10,padding:12,background:C.greenBg,borderRadius:10,color:C.green,fontSize:13,fontWeight:700}}>{csvMsg}</div>}
-            </div>
-            <div style={card}>
-              <SectionTitle icon="📖" title="CSV列の意味" color={C.orange}/>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {[["text","投稿本文（必須）"],["date","投稿日 YYYY-MM-DD"],["time","投稿時間 HH:MM"],["likes","いいね数"],["replies","返信数"],["reposts","リポスト数"],["views","閲覧数（インプレッション）"],["fc","フォロワー増減（±）"],["noteClicks","noteクリック数"],["noteSales","note購入数"],["hookType","フックタイプ（省略可）"],["role","投稿役割（省略可）"],["readerPsyche","読者心理（省略可）"]].map(([k,v])=>(
-                  <div key={k} style={{padding:"8px 12px",background:C.s2,borderRadius:8,display:"flex",gap:12}}>
-                    <code style={{color:C.purple,fontWeight:800,minWidth:90}}>{k}</code>
-                    <span style={{color:C.sub,fontSize:13}}>{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {tab === "csv" && (
+          <div className="grid2"><Card><h2 className="sectionTitle">CSVインポート / エクスポート</h2><p className="note">ヘッダーは text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales があればOK。hookType/role/readerPsycheが空なら自動分類します。</p><textarea style={{ minHeight: 300, marginTop: 14 }} value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={CSV_COLUMNS.join(",")} /><div className="buttonRow" style={{ marginTop: 12 }}><button className="primaryButton" onClick={importCsv}>CSVを取り込む</button><button className="ghostButton" onClick={loadSampleCsv}>サンプルCSV</button><button className="ghostButton" onClick={exportCsv}>現在データを書き出す</button></div>{csvMessage ? <div className="advice" style={{ marginTop: 12 }}>{csvMessage}</div> : null}</Card><Card><h2 className="sectionTitle">CSV列の意味</h2><div className="stack">{CSV_COLUMNS.map((col) => <div className="knowledgeItem" key={col}><strong>{col}</strong><br /><span className="note">{col === "text" ? "投稿本文" : col === "fc" ? "フォロワー増減" : col === "noteClicks" ? "noteクリック数" : col === "noteSales" ? "note購入数" : "Threads投稿の数値または分類"}</span></div>)}</div></Card></div>
         )}
 
-        {tab==="threads"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{...card,background:"linear-gradient(135deg,#fff0f5,#f5eeff)"}}>
-              <SectionTitle icon="🔗" title="Threads公式API連携" color={C.purple}/>
-              <div style={{color:C.sub,fontSize:13,lineHeight:1.8}}>
-                <strong style={{color:C.pink}}>重要：</strong>App SecretとAccess Tokenは絶対にReactアプリに置かない。バックエンド（Vercel/Cloudflare Workers/GAS）経由が必須です。
+        {tab === "threads" && (
+          <div className="stack">
+            <Card>
+              <h2 className="sectionTitle">Threads公式API連携の準備</h2>
+              <p className="note">ここは本番連携の設計図です。アクセストークンやClient SecretはReactに置かず、必ずバックエンド側で扱います。</p>
+              <div className="knowledgeList" style={{ marginTop: 14 }}>
+                {THREADS_API_NOTES.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:12}}>
-                {["① Metaでデベロッパーアカウント作成→アプリ作成（Threads APIユースケース選択）","② Threadsテスターとして自分を招待→Threadsアプリ側で承認（審査不要・個人利用OK）","③ バックエンドでOAuth→code→access_token交換→Threads API呼び出し→このアプリへ返す"].map((s,i)=>(
-                  <div key={i} style={{padding:"12px 14px",background:"rgba(255,255,255,0.8)",borderRadius:12,border:`1.5px solid ${C.border}`,fontSize:12,color:C.sub,lineHeight:1.7}}>
-                    <span style={{fontWeight:800,color:C.purple}}>{s.split("→")[0].split("①②③"[i])}</span>{s}
-                  </div>
-                ))}
-              </div>
-            </div>
+            </Card>
 
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={card}>
-                <SectionTitle icon="🔑" title="OAuth設定" color={C.pink}/>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div className="grid2">
+              <Card>
+                <h2 className="sectionTitle">OAuth設定</h2>
+                <div className="stack">
+                  <label><span className="smallLabel">Threads App ID / Client ID</span><input value={threadsConfig.clientId} onChange={(e) => setThreadsConfig({ ...threadsConfig, clientId: e.target.value })} placeholder="MetaアプリのClient ID" /></label>
+                  <label><span className="smallLabel">OAuthリダイレクトURL</span><input value={threadsConfig.redirectUri} onChange={(e) => setThreadsConfig({ ...threadsConfig, redirectUri: e.target.value })} /></label>
+                  <label><span className="smallLabel">バックエンドAPI URL</span><input value={threadsConfig.backendBaseUrl} onChange={(e) => setThreadsConfig({ ...threadsConfig, backendBaseUrl: e.target.value })} /></label>
                   <div>
-                    <label style={lbl}>Threads App ID / Client ID</label>
-                    <input value={threadsConfig.clientId} onChange={e=>setThreadsConfig(c=>({...c,clientId:e.target.value}))} style={inp} placeholder="数字だけのID（例：1234567890）"/>
-                  </div>
-                  <div>
-                    <label style={lbl}>OAuthリダイレクトURL（バックエンド側）</label>
-                    <input value={threadsConfig.redirectUri} onChange={e=>setThreadsConfig(c=>({...c,redirectUri:e.target.value}))} style={inp}/>
-                  </div>
-                  <div>
-                    <label style={lbl}>バックエンドAPI URL</label>
-                    <input value={threadsConfig.backendUrl} onChange={e=>setThreadsConfig(c=>({...c,backendUrl:e.target.value}))} style={inp} placeholder="https:
-                  </div>
-                  <div>
-                    <label style={lbl}>利用スコープ</label>
-                    {THREADS_SCOPES.map(s=>(
-                      <label key={s} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,fontSize:13,color:C.sub,fontWeight:600}}>
-                        <input type="checkbox" checked={threadsConfig.scopes.includes(s)} onChange={()=>setThreadsConfig(c=>({...c,scopes:c.scopes.includes(s)?c.scopes.filter(x=>x!==s):[...c.scopes,s]}))} style={{width:16}}/>{s}
-                      </label>
-                    ))}
-                  </div>
-                  <div style={{background:C.s2,borderRadius:10,padding:12,fontSize:11,fontFamily:"monospace",color:C.text,wordBreak:"break-all",lineHeight:1.7}}>
-                    {authUrl||"Client IDとリダイレクトURLを入力すると認可URLが生成されます"}
-                  </div>
-                  {authIssues.length>0?(
-                    <div style={{padding:12,background:C.pinkBg,borderRadius:10,fontSize:12,color:C.pink,fontWeight:700}}>
-                      {authIssues.map(i=><div key={i}>⚠️ {i}</div>)}
+                    <span className="smallLabel">利用スコープ</span>
+                    <div className="stack">
+                      {THREADS_SCOPE_OPTIONS.map((scope) => <label key={scope} className="switchRow"><input type="checkbox" checked={threadsConfig.scopes.includes(scope)} onChange={() => toggleThreadScope(scope)} style={{ width: 18 }} />{scope}</label>)}
                     </div>
-                  ):(
-                    <div style={{padding:12,background:C.greenBg,borderRadius:10,fontSize:12,color:C.green,fontWeight:700}}>✅ 認可URLが生成されています</div>
-                  )}
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>navigator.clipboard?.writeText(authUrl||"")} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,boxShadow:"none",fontSize:12}}>URLをコピー</button>
-                    <button onClick={()=>authUrl&&window.open(authUrl,"_blank")} style={{...mkbtn(),fontSize:12}}>認可URLを開く</button>
-                    <button onClick={syncFromBackend} disabled={syncStatus==="loading"} style={{...mkbtn(C.orangeBg,C.orange),border:`1.5px solid ${C.border}`,boxShadow:"none",fontSize:12,opacity:syncStatus==="loading"?0.5:1}}>{syncStatus==="loading"?"同期中...":"バックエンドと同期"}</button>
                   </div>
+                  <div className="copyBox">{threadsAuthUrl || "Client IDとリダイレクトURLを入れると、認可URLがここに出ます。"}</div>
+                  {threadsAuthDiagnostics.length ? <div className="advice">{threadsAuthDiagnostics.map((item) => <div key={item}>⚠️ {item}</div>)}</div> : <div className="advice">✅ 認可URLには client_id が入っています。次はMeta側のThreads用App IDか、リダイレクトURL完全一致を確認してください。</div>}
+                  <div className="buttonRow">
+                    <button className="ghostButton" onClick={() => navigator.clipboard?.writeText(threadsAuthUrl || "")}>認可URLをコピー</button>
+                    <button className="primaryButton" onClick={() => threadsAuthUrl && window.open(threadsAuthUrl, "_blank")}>認可URLを開く</button>
+                  </div>
+                  <div className="knowledgeItem"><strong>エラー4476002が出た時</strong><br /><span className="note">URL内に client_id=数字 があるか確認してください。Metaアプリの通常App IDではなく、Threadsユースケース側のApp IDが必要なケースがあります。</span></div>
+                  <div className="knowledgeItem"><strong>エラー1349168が出た時</strong><br /><span className="note">redirect_uri がMeta側の「有効なOAuthリダイレクトURI」に完全一致で登録されていません。https、ドメイン、パス、末尾スラッシュまで同じにしてください。</span></div>
                 </div>
-              </div>
-              <div style={card}>
-                <SectionTitle icon="📥" title="Threads APIデータを仮取り込み" color={C.orange}/>
-                <p style={{color:C.sub,fontSize:12,marginBottom:10,lineHeight:1.7}}>バックエンド完成前に、Threads APIから返る想定のJSONを貼って分析できます。</p>
-                <textarea style={{...inp,height:240,resize:"vertical",fontFamily:"monospace",fontSize:12}} value={threadsJson} onChange={e=>setThreadsJson(e.target.value)} placeholder='{"data":[{"text":"投稿本文","timestamp":"2026-05-25T12:00:00Z","insights":{"views":1000,"likes":20,"replies":3,"reposts":2}}]}'/>
-                <div style={{display:"flex",gap:8,marginTop:10}}>
-                  <button onClick={importThreadsJson} style={mkbtn()}>JSONを取り込む</button>
-                  <button onClick={loadSampleJson} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,boxShadow:"none"}}>サンプルJSON</button>
+              </Card>
+
+              <Card>
+                <h2 className="sectionTitle">バックエンドに必要なAPI</h2>
+                <div className="stack">
+                  <div className="knowledgeItem"><strong>GET /auth/start</strong><br /><span className="note">Threadsの認可画面へリダイレクトする。</span></div>
+                  <div className="knowledgeItem"><strong>GET /callback</strong><br /><span className="note">codeを受け取り、バックエンドでaccess_tokenへ交換する。</span></div>
+                  <div className="knowledgeItem"><strong>GET /posts</strong><br /><span className="note">Threads投稿とインサイトを取得し、このアプリの形式に変換する。</span></div>
+                  <div className="knowledgeItem"><strong>POST /sync</strong><br /><span className="note">取得した投稿をDBへ保存して、分析画面に返す。</span></div>
+                  <div className="knowledgeItem"><strong>ENV</strong><br /><span className="note">THREADS_APP_ID、THREADS_APP_SECRET、THREADS_ACCESS_TOKEN をバックエンドの環境変数に保存。Reactには置かない。</span></div>
                 </div>
-                {threadsMsg&&<div style={{marginTop:10,padding:12,background:syncStatus==="error"?C.redBg:C.greenBg,borderRadius:10,color:syncStatus==="error"?C.red:C.green,fontSize:12,fontWeight:700}}>{threadsMsg}</div>}
-                <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-                  {[
-                    {t:"取得できるデータ",c:C.greenBg,v:"投稿本文・投稿日・いいね・返信・リポスト・閲覧数"},
-                    {t:"手入力が必要なもの",c:C.goldBg,v:"noteクリック数・note購入数（noteダッシュボードから）"},
-                    {t:"⚠️ 絶対にここに貼らないもの",c:C.redBg,v:"App Secret・Access Token（バックエンドのみで使う）"},
-                  ].map((item,i)=>(
-                    <div key={i} style={{padding:"10px 12px",background:item.c,borderRadius:10,fontSize:12,lineHeight:1.7}}>
-                      <div style={{fontWeight:800,marginBottom:2}}>{item.t}</div>
-                      <div style={{color:C.sub}}>{item.v}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </Card>
             </div>
 
-            <div style={card}>
-              <SectionTitle icon="🛠️" title="バックエンド設計ガイド（Vercel / Cloudflare Workers推奨）" color={C.purple}/>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-                {[
-                  {path:"GET /auth/start",desc:"threads.net/oauth/authorizeへリダイレクト"},
-                  {path:"GET /callback",desc:"codeを受け取りaccess_tokenへ交換（App Secretはここだけ）"},
-                  {path:"GET /api/threads/posts",desc:"Threads API呼び出し・インサイト取得・このアプリの形式に変換して返す"},
-                  {path:"ENV変数",desc:"THREADS_APP_ID / THREADS_APP_SECRET / THREADS_ACCESS_TOKEN（Reactには置かない）"},
-                ].map((item,i)=>(
-                  <div key={i} style={{padding:"12px 14px",background:C.purpleBg,borderRadius:12,border:`1.5px solid ${C.border}`}}>
-                    <div style={{fontWeight:800,fontSize:12,color:C.purple,marginBottom:5,fontFamily:"monospace"}}>{item.path}</div>
-                    <div style={{color:C.sub,fontSize:12,lineHeight:1.6}}>{item.desc}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="grid2">
+              <Card>
+                <h2 className="sectionTitle">どれを使えばいいか判定</h2>
+                <p className="note">キーの中身ではなく、Meta画面に出ているラベル名だけ入れてください。例：App ID、App Secret、Access Token、Client Token。</p>
+                <label style={{ display: "block", marginTop: 14 }}><span className="smallLabel">ラベル名・項目名</span><input value={credentialHint} onChange={(e) => setCredentialHint(e.target.value)} placeholder="例：Threads App ID / App Secret / Access Token" /></label>
+                <div className="advice" style={{ marginTop: 12 }}>{credentialGuess.safety === "danger" ? "🚨" : credentialGuess.safety === "warn" ? "⚠️" : "✅"} <strong>{credentialGuess.title}</strong><br />{credentialGuess.message}</div>
+                <div className="stack" style={{ marginTop: 12 }}>
+                  {THREADS_CREDENTIAL_TYPES.map((item) => <div key={item.name} className="knowledgeItem"><strong>{item.safeForFrontend ? "✅" : "🔒"} {item.name}</strong><br /><span className="note">見た目：{item.whatItLooksLike}<br />使う場所：{item.whereToUse}<br />注意：{item.warning}</span></div>)}
+                </div>
+              </Card>
+
+              <Card>
+                <h2 className="sectionTitle">Threads API風JSONを仮取り込み</h2>
+                <p className="note">実連携前に、バックエンドから返る想定のJSONを貼って分析に入れられます。バックエンドができたら、下のボタンで自動同期できます。</p>
+                <div className="buttonRow" style={{ marginTop: 12 }}>
+                  <button className="primaryButton" onClick={syncThreadsFromBackend} disabled={threadsSyncStatus === "loading"}>{threadsSyncStatus === "loading" ? "同期中…" : "バックエンドからThreads同期"}</button>
+                </div>
+                <textarea style={{ minHeight: 300, marginTop: 14 }} value={threadsJson} onChange={(e) => setThreadsJson(e.target.value)} placeholder={'{"data":[{"text":"投稿本文","timestamp":"2026-05-25T12:00:00Z","insights":{"views":1000,"likes":20,"replies":3,"reposts":2}}]}'} />
+                <div className="buttonRow" style={{ marginTop: 12 }}>
+                  <button className="primaryButton" onClick={importThreadsJson}>JSONを取り込む</button>
+                  <button className="ghostButton" onClick={loadThreadsSampleJson}>サンプルJSON</button>
+                </div>
+                {threadsMessage ? <div className="advice" style={{ marginTop: 12 }}>{threadsMessage}</div> : null}
+              </Card>
+
+              <Card>
+                <h2 className="sectionTitle">連携後のデータ設計</h2>
+                <div className="profileBox"><span className="smallLabel">Threads APIで取る</span><p className="postText">投稿本文、投稿日、投稿ID、閲覧数、いいね、返信、リポストなど。</p></div>
+                <div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">ふく式で手入力/別連携</span><p className="postText">noteクリック数、note購入数、売れた時間、商品名、追記/値上げタイミング。</p></div>
+                <div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">分析に使う</span><p className="postText">Threads数値 × note成果 × 投稿分類 × 読者心理 × ふく式前提設定。</p></div>
+              </Card>
             </div>
           </div>
         )}
 
-        {tab==="analysis"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={card}>
-              <SectionTitle icon="🧠" title="マーケターコンサル脳 × AI深層分析" color={C.purple}/>
-              <p style={{color:C.sub,fontSize:13,lineHeight:1.8,marginBottom:12}}>月100万以上稼ぐマーケターの視点でかおりさんの投稿を徹底分析します。6種類から選んで実行してください。</p>
-              {!apiKey&&<div style={{padding:12,background:C.pinkBg,borderRadius:10,border:`1.5px solid ${C.pink}44`,marginBottom:12,fontSize:13,color:C.pink,fontWeight:700}}>⚠️ まず「⚙️ 設定」タブでAPIキーを入力してください</div>}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-                {ANALYSIS_TYPES.map(a=>(
-                  <button key={a.id} onClick={()=>setAnalysisType(a.id)} style={{
-                    background:analysisType===a.id?GRAD:C.s2,
-                    color:analysisType===a.id?"#fff":C.sub,
-                    border:`1.5px solid ${analysisType===a.id?"transparent":C.border}`,
-                    borderRadius:12,padding:"10px 12px",cursor:"pointer",textAlign:"left",
-                    fontFamily:"inherit",boxShadow:analysisType===a.id?"0 3px 12px rgba(139,53,204,0.25)":"none",
-                  }}>
-                    <div style={{fontWeight:800,fontSize:12,marginBottom:3}}>{a.label}</div>
-                    <div style={{fontSize:10,opacity:0.8}}>{a.desc}</div>
-                  </button>
-                ))}
-              </div>
-              <button onClick={runAnalysis} disabled={aiLoading||!apiKey} style={{...mkbtn(aiLoading||!apiKey?C.muted:undefined),opacity:aiLoading||!apiKey?0.5:1,width:"100%",fontSize:15,padding:13}}>
-                {aiLoading?"⏳ コンサル脳が分析中...（30〜60秒かかります）":"🚀 深層分析を実行する"}
-              </button>
-            </div>
-            {aiLoading&&<div style={{...card,textAlign:"center",padding:40}}><div style={{fontSize:36,marginBottom:12}}>✦</div><div style={{color:C.purple,fontWeight:700}}>月100万マーケター脳が{posts.length}件の投稿を分析しています...</div></div>}
-            {aiResult&&!aiLoading&&(
-              <div style={card}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <SectionTitle icon="✅" title="分析レポート" color={C.green}/>
-                  <button onClick={()=>{navigator.clipboard.writeText(aiResult);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,padding:"7px 14px",fontSize:12,boxShadow:"none"}}>{copied?"✅ コピー済":"📋 コピー"}</button>
-                </div>
-                <Mkd text={aiResult}/>
-              </div>
-            )}
-            {!aiResult&&!aiLoading&&<div style={{...card,textAlign:"center",padding:50,background:`linear-gradient(135deg,${C.pinkBg},${C.purpleBg})`}}><div style={{fontSize:48,marginBottom:12}}>🧠</div><div style={{color:C.purple,fontWeight:700}}>分析の種類を選んで実行してください</div><div style={{color:C.muted,fontSize:12,marginTop:8}}>データが多いほど分析精度が上がります</div></div>}
-          </div>
+        {tab === "next" && (
+          <div className="grid2"><Card><h2 className="sectionTitle">次に出すべき投稿</h2><div className="profileBox"><span className="smallLabel">おすすめ</span><p className="postText" style={{ fontWeight: 900 }}>{stats.nextRec.hook} × {stats.nextRec.role} × {stats.nextRec.psyche}</p></div><div className="advice" style={{ marginTop: 14 }}>{stats.nextRec.reason}</div><div className="miniGrid" style={{ marginTop: 14 }}><StatCard label="推奨テーマ" value={stats.nextRec.theme} /><StatCard label="狙う役割" value={stats.nextRec.role} /><StatCard label="読者心理" value={stats.nextRec.psyche} /></div></Card><Card><h2 className="sectionTitle">そのまま使える下書き</h2><div className="copyBox">{makeDraftByRecommendation(stats.nextRec)}</div></Card></div>
         )}
 
-        {tab==="generate"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1.5fr",gap:16}}>
-            <div style={card}>
-              <SectionTitle icon="✨" title="AI投稿案生成" color={C.orange}/>
-              {!apiKey&&<div style={{padding:12,background:C.pinkBg,borderRadius:10,border:`1.5px solid ${C.pink}44`,marginBottom:12,fontSize:12,color:C.pink,fontWeight:700}}>⚠️ 設定タブでAPIキーを入力してください</div>}
-              {[["theme","投稿テーマ *","例：ChatGPTで自分のnoteを10分で書く方法"],["cta","CTA（誘導先）","例：プロフィールのnote、dododo ChatGPT"],["product","商品・サービス（任意）","例：dododo ChatGPT、Threads×note収益化教材"]].map(([k,l,ph])=>(
-                <div key={k} style={{marginBottom:10}}>
-                  <label style={lbl}>{l}</label>
-                  <input value={genForm[k]} onChange={e=>setGenForm(f=>({...f,[k]:e.target.value}))} style={inp} placeholder={ph}/>
-                </div>
-              ))}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-                <div><label style={lbl}>フック種類</label>
-                  <select value={genForm.tone} onChange={e=>setGenForm(f=>({...f,tone:e.target.value}))} style={{...inp,cursor:"pointer"}}>
-                    {HOOK_TYPES.map(h=><option key={h}>{h}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>投稿目的</label>
-                  <select value={genForm.goal} onChange={e=>setGenForm(f=>({...f,goal:e.target.value}))} style={{...inp,cursor:"pointer"}}>
-                    {["フォロワー増加","note購入促進","エンゲージメント向上","認知拡大","信頼構築"].map(g=><option key={g}>{g}</option>)}
-                  </select>
-                </div>
-              </div>
-              <button onClick={generatePosts} disabled={genLoading||!apiKey} style={{...mkbtn(genLoading||!apiKey?C.muted:C.orange),width:"100%",opacity:genLoading||!apiKey?0.5:1,boxShadow:genLoading||!apiKey?"none":"0 4px 14px rgba(240,112,48,0.25)"}}>
-                {genLoading?"生成中...":"✨ かおりスタイルで5パターン生成"}
-              </button>
-              <div style={{marginTop:12,padding:12,background:C.orangeBg,borderRadius:10,fontSize:12,color:C.orange,lineHeight:1.8,fontWeight:600}}>
-                🎯 あなたのTOP投稿のトーン・文体を学習して生成します
-              </div>
-            </div>
-            <div>
-              {genResult?(
-                <div style={card}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                    <SectionTitle icon="🎉" title="生成された投稿案" color={C.orange}/>
-                    <button onClick={()=>{navigator.clipboard.writeText(genResult);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,padding:"7px 14px",fontSize:12,boxShadow:"none"}}>{copied?"✅ コピー済":"📋 全コピー"}</button>
-                  </div>
-                  <Mkd text={genResult}/>
-                </div>
-              ):(
-                <div style={{...card,textAlign:"center",padding:50,background:`linear-gradient(135deg,${C.orangeBg},${C.pinkBg})`}}>
-                  <div style={{fontSize:48,marginBottom:12}}>✨</div>
-                  <div style={{color:C.orange,fontWeight:700}}>テーマを入力して投稿案を生成</div>
-                  <div style={{color:C.muted,fontSize:12,marginTop:8}}>あなたの文体を学習した5パターンを生成します</div>
-                </div>
-              )}
-            </div>
-          </div>
+        {tab === "sales" && (
+          <div className="stack"><Card><h2 className="sectionTitle">売れた前後分析</h2><p className="note">note購入数が1以上の投稿を起点に、販売前3日・販売後1.5日の流れを見ます。</p></Card>{stats.saleWindows.length === 0 ? <Card><p className="postText">まだnote購入数が入っている投稿がありません。</p></Card> : null}{stats.saleWindows.map((window) => <Card key={window.salePost.id}><div className="postTop"><h2 className="sectionTitle" style={{ margin: 0 }}>売れた投稿：{window.salePost.date} {window.salePost.time}</h2><span className="egPill">{window.salePost.noteSales}部</span></div><p className="postText">{window.salePost.text}</p><div className="advice" style={{ marginTop: 12 }}>{window.insight}</div><div className="grid2" style={{ marginTop: 14 }}><div><h3 className="smallLabel">販売前3日間の投稿</h3><div className="stack">{window.before.length ? window.before.map((p) => <div key={p.id} className="knowledgeItem">{p.date} {p.time}<br />{p.text.slice(0, 70)}<br /><span className="note">{p.role} / 導線{funnelScore(p, profile)}点</span></div>) : <div className="knowledgeItem">該当なし</div>}</div></div><div><h3 className="smallLabel">販売後1.5日間の投稿</h3><div className="stack">{window.after.length ? window.after.map((p) => <div key={p.id} className="knowledgeItem">{p.date} {p.time}<br />{p.text.slice(0, 70)}<br /><span className="note">{p.role} / 導線{funnelScore(p, profile)}点</span></div>) : <div className="knowledgeItem">該当なし</div>}</div></div></div></Card>)}</div>
         )}
 
-        {tab==="sales"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={card}>
-              <SectionTitle icon="💰" title="売れた前後分析" color={C.orange}/>
-              <p style={{color:C.sub,fontSize:13,lineHeight:1.7}}>note購入数が1以上の投稿を起点に、販売前3日・販売後1.5日の流れを分析します。どんな投稿の後に売れているかがわかります。</p>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:12}}>
-                <div style={{padding:"12px 14px",background:C.goldBg,borderRadius:12,textAlign:"center"}}>
-                  <div style={{fontSize:11,color:C.gold,fontWeight:800,marginBottom:6}}>総購入件数</div>
-                  <div style={{fontSize:24,fontWeight:900,color:C.gold}}>{stats.totalSales}件</div>
-                </div>
-                <div style={{padding:"12px 14px",background:C.orangeBg,borderRadius:12,textAlign:"center"}}>
-                  <div style={{fontSize:11,color:C.orange,fontWeight:800,marginBottom:6}}>購入ある投稿数</div>
-                  <div style={{fontSize:24,fontWeight:900,color:C.orange}}>{stats.saleWindows.length}件</div>
-                </div>
-                <div style={{padding:"12px 14px",background:C.pinkBg,borderRadius:12,textAlign:"center"}}>
-                  <div style={{fontSize:11,color:C.pink,fontWeight:800,marginBottom:6}}>平均note購入率</div>
-                  <div style={{fontSize:24,fontWeight:900,color:C.pink}}>{posts.length&&stats.totalClicks?+(stats.totalSales/stats.totalClicks*100).toFixed(1):0}%</div>
-                </div>
-              </div>
-            </div>
-            {stats.saleWindows.length===0&&<div style={{...card,textAlign:"center",padding:40,color:C.muted}}>note購入数が入っている投稿がまだありません。<br/>「✍️ 入力」タブでnote購入数を入力してください。</div>}
-            {stats.saleWindows.map(w=>(
-              <div key={w.salePost.id} style={card}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                  <SectionTitle icon="💰" title={`売れた投稿：${w.salePost.date} ${w.salePost.time}`} color={C.orange}/>
-                  <div style={{padding:"6px 14px",background:C.orangeBg,borderRadius:20,color:C.orange,fontWeight:900,fontSize:15}}>{w.salePost.noteSales}件購入</div>
-                </div>
-                <div style={{padding:"10px 14px",background:C.s2,borderRadius:10,fontSize:13,lineHeight:1.7,marginBottom:10}}>{w.salePost.text}</div>
-                <div style={{padding:"10px 14px",background:C.goldBg,borderRadius:10,fontSize:13,color:C.gold,fontWeight:700,marginBottom:12}}>💡 {w.insight}</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div>
-                    <div style={{fontSize:11,color:C.muted,fontWeight:800,marginBottom:8}}>販売前3日間の投稿</div>
-                    {w.before.length?(
-                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        {w.before.map(p=>(
-                          <div key={p.id} style={{padding:"8px 12px",background:C.pinkBg,borderRadius:10,fontSize:12}}>
-                            <div style={{color:C.muted,marginBottom:3}}>{p.date} {p.time}</div>
-                            <div style={{color:C.text,marginBottom:3}}>{p.text.slice(0,60)}…</div>
-                            <div style={{display:"flex",gap:6}}><Badge color={C.pink} bg={C.pinkBg}>{p.role}</Badge><span style={{color:C.purple,fontWeight:700}}>導線{funnelScore(p)}点</span></div>
-                          </div>
-                        ))}
-                      </div>
-                    ):<div style={{padding:"8px 12px",background:C.s2,borderRadius:10,fontSize:12,color:C.muted}}>該当なし</div>}
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,color:C.muted,fontWeight:800,marginBottom:8}}>販売後1.5日間の投稿</div>
-                    {w.after.length?(
-                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        {w.after.map(p=>(
-                          <div key={p.id} style={{padding:"8px 12px",background:C.purpleBg,borderRadius:10,fontSize:12}}>
-                            <div style={{color:C.muted,marginBottom:3}}>{p.date} {p.time}</div>
-                            <div style={{color:C.text,marginBottom:3}}>{p.text.slice(0,60)}…</div>
-                            <div style={{display:"flex",gap:6}}><Badge color={C.purple} bg={C.purpleBg}>{p.role}</Badge><span style={{color:C.purple,fontWeight:700}}>導線{funnelScore(p)}点</span></div>
-                          </div>
-                        ))}
-                      </div>
-                    ):<div style={{padding:"8px 12px",background:C.s2,borderRadius:10,fontSize:12,color:C.muted}}>該当なし</div>}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <div style={{...card,background:`linear-gradient(135deg,${C.pinkBg},${C.purpleBg})`}}>
-              <SectionTitle icon="🎯" title="次に出すべき投稿" color={C.purple}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div>
-                  <div style={{padding:"12px 14px",background:"rgba(255,255,255,0.8)",borderRadius:12,marginBottom:10}}>
-                    <div style={{fontSize:11,color:C.muted,fontWeight:800,marginBottom:6}}>おすすめ</div>
-                    <div style={{fontWeight:900,fontSize:16,color:C.purple}}>{stats.nextRec.hook} × {stats.nextRec.role}</div>
-                    <div style={{fontWeight:700,color:C.pink,marginTop:4}}>テーマ：{stats.nextRec.theme}</div>
-                  </div>
-                  <div style={{padding:"12px 14px",background:"rgba(255,255,255,0.7)",borderRadius:12,fontSize:13,color:C.sub,lineHeight:1.7}}>{stats.nextRec.reason}</div>
-                </div>
-                <div style={{padding:"14px 16px",background:"rgba(255,255,255,0.9)",borderRadius:12,fontFamily:"sans-serif",fontSize:13,lineHeight:1.9,color:C.text,whiteSpace:"pre-wrap"}}>
-                  {stats.nextRec.role==="信頼"?`ChatGPTで発信素材を作る5ステップ\n\n①テーマを決める\n②ChatGPTに構成を出させる\n③自分の言葉で書き直す\n④かわいい画像を添える\n⑤noteへの導線を1行置く\n\n詳しくはプロフィールのnoteに。`:
-                  stats.nextRec.role==="導線"?`最近、${stats.nextRec.theme}という質問をよく見ます。\n\nだから、私がやってよかったことをまとめました。\n\n必要であればプロフィールから見てみてください。`:
-                  stats.nextRec.role==="レビュー"?`dododo ChatGPT、また購入してくださった方がいました。\n\nありがとうございます。\n\n週末に追記します。使い方も一緒に。`:
-                  `これ、当てはまる？\n\n① AIに興味があるが何から始めれば\n② noteを書いているが全然売れない\n③ 発信を続けているのに収益ゼロ\n\nひとつでもあるなら、順番の問題かも。`}
-                </div>
-              </div>
-            </div>
-          </div>
+        {tab === "knowledge" && (
+          <div className="stack"><Card><h2 className="sectionTitle">読み込み済み：ふく式Threads運用ナレッジ</h2><p className="postText">{FUKU_KNOWLEDGE.corePosition}</p><div className="profileBox" style={{ marginTop: 14 }}><span className="smallLabel">基本メッセージ</span><p className="postText" style={{ fontWeight: 900 }}>{FUKU_KNOWLEDGE.mainMessage}</p></div></Card><div className="knowledgeList"><Card><h2 className="sectionTitle">投稿タイプ</h2><div className="stack">{FUKU_KNOWLEDGE.contentRoles.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card><Card><h2 className="sectionTitle">フックルール</h2><div className="stack">{FUKU_KNOWLEDGE.hookRules.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card><Card><h2 className="sectionTitle">note導線フレーズ</h2><div className="stack">{FUKU_KNOWLEDGE.noteBridge.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card><Card><h2 className="sectionTitle">避けること</h2><div className="stack">{FUKU_KNOWLEDGE.avoid.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card></div></div>
         )}
 
-        {tab==="reflection"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1.6fr",gap:16}}>
-            <div style={card}>
-              <SectionTitle icon="🔄" title="日次/週次 振り返り分析" color={C.purple}/>
-              <p style={{color:C.sub,fontSize:12,marginBottom:14,lineHeight:1.7}}>寝稼ぎ式・おさる式・ヒカさん式・3層構造フレーム全部使って振り返ります。</p>
-              {!apiKey&&<div style={{padding:10,background:C.pinkBg,borderRadius:10,marginBottom:10,fontSize:12,color:C.pink,fontWeight:700}}>⚠️ 設定タブでAPIキーを入力してください</div>}
-              {[["period","振り返り期間","例：2026/5/26（月）一日"],["posts_text","今日投稿した内容","各投稿のフック・時間・数字も書く"],["numbers","数字（インプ・いいね・F増減・noteクリック等）",""],["win_post","一番伸びた投稿",""],["lose_post","反応が弱かった投稿",""],["concern","迷っていること",""]].map(([k,l,ph])=>(
-                <div key={k} style={{marginBottom:10}}>
-                  <label style={lbl}>{l}</label>
-                  <textarea value={reflectForm[k]} onChange={e=>setReflectForm(f=>({...f,[k]:e.target.value}))} style={{...inp,height:65,resize:"vertical"}} placeholder={ph}/>
-                </div>
-              ))}
-              <button onClick={runReflection} disabled={reflectLoading||!apiKey} style={{...mkbtn(reflectLoading||!apiKey?C.muted:C.purple),opacity:reflectLoading||!apiKey?0.5:1,width:"100%"}}>
-                {reflectLoading?"⏳ 振り返り分析中...":"🔄 振り返り分析を実行"}
-              </button>
-              <div style={{marginTop:12,padding:12,background:C.purpleBg,borderRadius:10,fontSize:11,color:C.sub,lineHeight:1.8}}>
-                💡 分析項目：総合評価・フック診断・投稿タイプ分類・CTA評価・バズ翌日の橋渡し確認・note導線評価・次の投稿全文・今日の学び一言
-              </div>
-            </div>
-            <div>
-              {reflectResult?(
-                <div style={card}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                    <SectionTitle icon="✅" title="振り返りレポート" color={C.purple}/>
-                    <button onClick={()=>{navigator.clipboard.writeText(reflectResult);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,padding:"7px 14px",fontSize:12,boxShadow:"none"}}>{copied?"✅ コピー済":"📋 コピー"}</button>
-                  </div>
-                  <Mkd text={reflectResult}/>
-                </div>
-              ):(
-                <div style={{...card,textAlign:"center",padding:50,background:`linear-gradient(135deg,${C.purpleBg},${C.pinkBg})`}}>
-                  <div style={{fontSize:48,marginBottom:12}}>🔄</div>
-                  <div style={{color:C.purple,fontWeight:700}}>左に今日の投稿データを入力して振り返り分析を実行してください</div>
-                  <div style={{color:C.muted,fontSize:12,marginTop:12,lineHeight:1.8}}>
-                    総合評価 / フック診断 / 投稿タイプ分類<br/>CTA評価 / 橋渡し投稿確認 / note導線評価<br/>次の24時間でやること3つ / 次の投稿全文
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {tab === "drafts" && (
+          <div className="grid2"><Card><h2 className="sectionTitle">ふく式 投稿生成</h2><p className="note">ナレッジをもとに、共感・情報緊急・導線・診断型のたたき台を出します。</p><label style={{ display: "block", marginTop: 16 }}><span className="smallLabel">テーマ</span><input value={draftTheme} onChange={(e) => setDraftTheme(e.target.value)} placeholder="例：夫のただいまが怖い" /></label><div className="profileBox" style={{ marginTop: 16 }}><span className="smallLabel">生成ルール</span><p className="postText">Threadsでは感情の揺さぶりと自分ごと化まで。noteで納得・手順・安心感を渡す。</p></div></Card><Card><h2 className="sectionTitle">生成結果</h2><div className="stack">{generateDrafts().map((draft, index) => <div key={index} className="copyBox">{draft}</div>)}</div></Card></div>
         )}
 
-        {tab==="ghost"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1.5fr",gap:16}}>
-            <div style={card}>
-              <SectionTitle icon="👻" title="Ghost Reviewer（4視点レビュー）" color={C.purple}/>
-              <p style={{color:C.sub,fontSize:12,marginBottom:14,lineHeight:1.7}}>投稿を出す前に4つの立場から同時にリアルなフィードバック。「投稿は伸びるけど売れない」が消えます。</p>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                {["👴 3年後の自分：ブランドとして正解か","🎯 競合発信者：差別化できているか","🤔 買わなかった客：何が引っかかったか","💚 購入者：信頼残高は上がるか"].map((s,i)=>(
-                  <div key={i} style={{padding:"10px 12px",background:C.purpleBg,borderRadius:10,fontSize:12,color:C.sub}}>{s}</div>
-                ))}
-              </div>
-              {!apiKey&&<div style={{padding:10,background:C.pinkBg,borderRadius:10,marginBottom:10,fontSize:12,color:C.pink,fontWeight:700}}>⚠️ 設定タブでAPIキーを入力してください</div>}
-              <label style={lbl}>レビューしたい投稿文</label>
-              <textarea value={ghostText} onChange={e=>setGhostText(e.target.value)} style={{...inp,height:180,resize:"vertical",marginBottom:12}} placeholder="投稿文をここに貼り付けてください..."/>
-              <button onClick={runGhostReview} disabled={ghostLoading||!apiKey} style={{...mkbtn(ghostLoading||!apiKey?C.muted:C.purple),opacity:ghostLoading||!apiKey?0.5:1,width:"100%"}}>
-                {ghostLoading?"⏳ 4視点でレビュー中...":"👻 Ghost Reviewを実行"}
-              </button>
-            </div>
-            <div>
-              {ghostResult?(
-                <div style={card}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                    <SectionTitle icon="💡" title="4視点レビュー結果" color={C.purple}/>
-                    <button onClick={()=>{navigator.clipboard.writeText(ghostResult);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,padding:"7px 14px",fontSize:12,boxShadow:"none"}}>{copied?"✅ コピー済":"📋 コピー"}</button>
-                  </div>
-                  <Mkd text={ghostResult}/>
-                </div>
-              ):(
-                <div style={{...card,textAlign:"center",padding:50,background:`linear-gradient(135deg,${C.purpleBg},${C.orangeBg})`}}>
-                  <div style={{fontSize:48,marginBottom:12}}>👻</div>
-                  <div style={{color:C.purple,fontWeight:700}}>投稿文を貼り付けてGhost Reviewを実行</div>
-                  <div style={{color:C.muted,fontSize:12,marginTop:12,lineHeight:1.8}}>
-                    4視点同時フィードバック<br/>（寝稼ぎ式AI5技術の最上位テクニック）
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {tab === "profile" && (
+          <div className="stack"><Card><h2 className="sectionTitle">分析の前提設定マスター</h2><p className="note">これまで一緒に作ってきた、ふくさん専用の発信戦略を初期値として入れています。ここを書き換えると、導線スコア・次の一手・投稿生成の判断基準も変わります。</p><div className="buttonRow" style={{ marginTop: 14 }}><button className="primaryButton" onClick={() => setProfile(DEFAULT_PROFILE)}>ふく式デフォルトに戻す</button></div></Card><div className="grid2"><Card><h2 className="sectionTitle">① 基本プロフィール</h2><div className="stack"><label><span className="smallLabel">発信者の立ち位置</span><textarea value={profile.position} onChange={(e) => setProfile({ ...profile, position: e.target.value })} /></label><label><span className="smallLabel">ターゲット読者</span><textarea value={profile.target} onChange={(e) => setProfile({ ...profile, target: e.target.value })} /></label><label><span className="smallLabel">ひとりに絞った読者像</span><textarea value={profile.onePersonTarget} onChange={(e) => setProfile({ ...profile, onePersonTarget: e.target.value })} /></label><label><span className="smallLabel">商品</span><input value={profile.product} onChange={(e) => setProfile({ ...profile, product: e.target.value })} /></label><label><span className="smallLabel">無料導線</span><input value={profile.freeLead} onChange={(e) => setProfile({ ...profile, freeLead: e.target.value })} /></label><label><span className="smallLabel">目的</span><input value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })} /></label></div></Card><Card><h2 className="sectionTitle">② ブランド思想</h2><div className="stack"><label><span className="smallLabel">届ける約束</span><textarea value={profile.brandPromise} onChange={(e) => setProfile({ ...profile, brandPromise: e.target.value })} /></label><label><span className="smallLabel">メインメッセージ</span><textarea value={profile.mainMessage} onChange={(e) => setProfile({ ...profile, mainMessage: e.target.value })} /></label><label><span className="smallLabel">基本CTA</span><textarea value={profile.cta} onChange={(e) => setProfile({ ...profile, cta: e.target.value })} /></label><label><span className="smallLabel">導線設計</span><textarea value={profile.funnelDesign} onChange={(e) => setProfile({ ...profile, funnelDesign: e.target.value })} /></label></div></Card></div><div className="grid2"><Card><h2 className="sectionTitle">③ 勝ちパターン</h2><p className="note">1行1パターンで編集できます。</p><textarea style={{ minHeight: 260, marginTop: 12 }} value={profile.winningPatterns} onChange={(e) => setProfile({ ...profile, winningPatterns: e.target.value })} /></Card><Card><h2 className="sectionTitle">④ 避ける表現</h2><p className="note">投稿生成や分析で、避けたい方向性として扱います。</p><textarea style={{ minHeight: 260, marginTop: 12 }} value={profile.avoidTone} onChange={(e) => setProfile({ ...profile, avoidTone: e.target.value })} /></Card></div><Card><h2 className="sectionTitle">前提設定サマリー</h2><div className="knowledgeList"><div className="knowledgeItem"><strong>このアプリが高く評価する投稿</strong><p className="note">読者の怖さを言語化し、準備という希望を渡し、note/プロフィールへの自然な橋がある投稿。</p></div><div className="knowledgeItem"><strong>このアプリが注意する投稿</strong><p className="note">共感だけで終わる投稿、専門用語から入る投稿、売り込みの脈絡がない投稿、読者を責める投稿。</p></div><div className="knowledgeItem"><strong>導線スコアへの反映</strong><p className="note">設定内容に沿うキーワードやメッセージがある投稿は、プロフィール一致スコアとして導線スコアに上乗せします。</p></div><div className="knowledgeItem"><strong>ふく式の軸</strong><p className="note">{profile.mainMessage}</p></div></div></Card></div>
         )}
 
-        {tab==="knowledge"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{...card,background:`linear-gradient(135deg,${C.pinkBg},${C.purpleBg})`}}>
-              <SectionTitle icon="📚" title="統合ナレッジライブラリ（全フレームワーク）" color={C.purple}/>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {[["kaori","🎨 かおり式"],["nekasegi","😴 寝稼ぎ式"],["hooks","🎣 3大フック"],["ai5","🤖 AI5技術"],["layers","📐 3層構造"],["reflect","🔄 振り返り"],["fuku","🌸 ふく式参考"],["fan","💜 ファン化6原理"],["noteStep","📝 noteタイミング"],["influence","👑 影響力編"]].map(([k,l])=>(
-                  <button key={k} onClick={()=>setKnowledgeTab(k)} style={{background:knowledgeTab===k?GRAD:"rgba(255,255,255,0.8)",color:knowledgeTab===k?"#fff":C.sub,border:`1.5px solid ${knowledgeTab===k?"transparent":C.border}`,borderRadius:20,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>{l}</button>
-                ))}
-              </div>
-              {knowledgeTab==="ai5"&&<div style={{marginTop:12,display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>{Object.values(MASTER_KNOWLEDGE.aiTechniques).map((tech,i)=><div key={i} style={{padding:"10px 12px",background:"rgba(255,255,255,0.8)",borderRadius:12,border:`1.5px solid ${C.border}`}}><div style={{fontWeight:800,fontSize:12,color:C.purple,marginBottom:5}}>{tech.name}</div><div style={{fontSize:11,color:C.sub,lineHeight:1.6}}>{tech.benefit}</div><div style={{fontSize:10,color:C.muted,marginTop:6,lineHeight:1.5}}>{tech.howto}</div></div>)}</div>}
-              {knowledgeTab==="nekasegi"&&<div style={{marginTop:12}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={{fontWeight:800,color:C.purple,marginBottom:8}}>ロードマップ</div>{MASTER_KNOWLEDGE.nekasegi.roadmap.map((it,i)=><div key={i} style={{padding:"8px 12px",background:"rgba(255,255,255,0.8)",borderRadius:8,fontSize:12,color:C.sub,marginBottom:4}}>{it}</div>)}</div><div><div style={{fontWeight:800,color:C.orange,marginBottom:8}}>補講</div>{MASTER_KNOWLEDGE.nekasegi.addLectures.map((it,i)=><div key={i} style={{padding:"8px 12px",background:"rgba(255,255,255,0.8)",borderRadius:8,fontSize:12,color:C.sub,marginBottom:4}}>{it}</div>)}</div></div></div>}
-              {knowledgeTab==="hooks"&&<div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>{[MASTER_KNOWLEDGE.hookMethods.osaru,MASTER_KNOWLEDGE.hookMethods.nekasegi,MASTER_KNOWLEDGE.hookMethods.hika].map((m,i)=><div key={i} style={{padding:"12px",background:"rgba(255,255,255,0.85)",borderRadius:12}}><div style={{fontWeight:800,color:[C.orange,C.purple,C.pink][i],marginBottom:6}}>{m.name}</div><div style={{fontSize:12,color:C.sub,marginBottom:8}}>{m.core}</div>{(m.examples||m.patterns||[]).slice(0,3).map((ex,j)=><div key={j} style={{padding:"5px 8px",background:C.s2,borderRadius:6,fontSize:11,color:C.sub,marginBottom:3}}>{ex}</div>)}</div>)}</div>}
-              {knowledgeTab==="layers"&&<div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr",gap:8}}>{[{l:"認知層",v:MASTER_KNOWLEDGE.postLayers.recognition,c:C.pink},{l:"信頼層",v:MASTER_KNOWLEDGE.postLayers.trust,c:C.purple},{l:"収益層（導線層）",v:MASTER_KNOWLEDGE.postLayers.funnel,c:C.orange}].map((s,i)=><div key={i} style={{padding:"12px 16px",background:"rgba(255,255,255,0.8)",borderRadius:12,border:`2px solid ${s.c}33`}}><div style={{fontWeight:800,color:s.c,marginBottom:4}}>{s.l}</div><div style={{fontSize:13,color:C.sub}}>{s.v}</div></div>)}<div style={{padding:"12px 16px",background:C.purpleBg,borderRadius:12,fontWeight:800,color:C.purple}}>{MASTER_KNOWLEDGE.postLayers.rule}</div></div>}
-              {knowledgeTab==="reflect"&&<div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div>{MASTER_KNOWLEDGE.reflectionFramework.evaluationAxes.map((it,i)=><div key={i} style={{padding:"8px 12px",background:"rgba(255,255,255,0.8)",borderRadius:8,fontSize:12,color:C.sub,marginBottom:4}}><span style={{color:C.pink,fontWeight:900}}>{i+1}. </span>{it}</div>)}</div><div><div style={{padding:"12px",background:"rgba(255,255,255,0.8)",borderRadius:12,marginBottom:8}}><div style={{fontWeight:800,color:C.green,marginBottom:5}}>✅ 勝ちパターン</div><div style={{fontSize:12,color:C.sub}}>{MASTER_KNOWLEDGE.reflectionFramework.winLosePattern.win}</div></div><div style={{padding:"12px",background:"rgba(255,255,255,0.8)",borderRadius:12,marginBottom:8}}><div style={{fontWeight:800,color:C.gold,marginBottom:5}}>⭐ 黄金法則</div><div style={{fontSize:12,color:C.sub}}>{MASTER_KNOWLEDGE.reflectionFramework.winLosePattern.golden}</div></div></div></div>}
-              {knowledgeTab==="fuku"&&<div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={{padding:"12px 16px",background:"rgba(255,255,255,0.85)",borderRadius:12,marginBottom:8}}><div style={{fontWeight:900,color:C.pink,fontSize:13,marginBottom:8}}>{MASTER_KNOWLEDGE.fukuStyle.coreMessage}</div></div>{MASTER_KNOWLEDGE.fukuStyle.winningPatterns.map((it,i)=><div key={i} style={{padding:"8px 12px",background:"rgba(255,255,255,0.8)",borderRadius:8,fontSize:12,color:C.sub,marginBottom:4}}>{it}</div>)}</div><div>{MASTER_KNOWLEDGE.fukuStyle.ctaExamples.map((it,i)=><div key={i} style={{padding:"8px 12px",background:C.orangeBg,borderRadius:8,fontSize:12,color:C.orange,marginBottom:4,fontWeight:600}}>{it}</div>)}{MASTER_KNOWLEDGE.fukuStyle.avoid.map((it,i)=><div key={i} style={{padding:"8px 12px",background:C.redBg,borderRadius:8,fontSize:12,color:C.sub,marginBottom:4}}>{it}</div>)}</div></div>}
-
-              <div style={{fontWeight:700,fontSize:14,lineHeight:1.8,color:C.text,marginBottom:10}}>{FUKU_KNOWLEDGE.corePosition}</div>
-              <div style={{padding:"12px 16px",background:"rgba(255,255,255,0.8)",borderRadius:12}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:800,marginBottom:5}}>メインメッセージ</div>
-                <div style={{fontWeight:900,fontSize:16,color:C.purple}}>{FUKU_KNOWLEDGE.mainMessage}</div>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[
-                {title:"勝ちパターン",icon:"🏆",items:FUKU_KNOWLEDGE.winningPatterns,color:C.pink},
-                {title:"フックルール",icon:"🎣",items:FUKU_KNOWLEDGE.hookRules,color:C.orange},
-                {title:"note導線フレーズ",icon:"🔗",items:FUKU_KNOWLEDGE.noteBridge,color:C.purple},
-                {title:"避けること",icon:"❌",items:FUKU_KNOWLEDGE.avoid,color:C.red},
-                {title:"読者の状態",icon:"👤",items:FUKU_KNOWLEDGE.readerStates,color:C.gold},
-                {title:"主なリスク",icon:"⚠️",items:FUKU_KNOWLEDGE.risks,color:C.orange},
-              ].map((sec,i)=>(
-                <div key={i} style={card}>
-                  <SectionTitle icon={sec.icon} title={sec.title} color={sec.color}/>
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {sec.items.map((item,j)=>(
-                      <div key={j} style={{padding:"8px 12px",background:C.s2,borderRadius:8,fontSize:13,color:C.sub,lineHeight:1.6}}>{item}</div>
-                    ))}
-                  </div>
-
-              {knowledgeTab==="fan"&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-                {EXTENDED_KNOWLEDGE.fanPrinciples.sixPrinciples.map((p,i)=>(
-                  <div key={i} style={{padding:"12px 14px",background:"rgba(255,255,255,0.85)",borderRadius:14,border:`1.5px solid ${C.border}`}}>
-                    <div style={{fontWeight:800,fontSize:13,color:C.purple,marginBottom:6}}>原理{p.id}：{p.name}</div>
-                    <div style={{fontSize:11,color:C.text,lineHeight:1.7,marginBottom:6}}>{p.core}</div>
-                    <div style={{fontSize:10,color:C.accent,background:C.s2,borderRadius:8,padding:"4px 8px"}}>▶ {p.action}</div>
-                  </div>
-                ))}
-                <div style={{gridColumn:"1/-1",padding:"12px 14px",background:C.s2,borderRadius:12,border:`1.5px solid ${C.border}`,fontSize:11,color:C.sub}}>
-                  <strong style={{color:C.purple}}>ブランドコア：</strong>{EXTENDED_KNOWLEDGE.fanPrinciples.brandCore}
-                </div>
-              </div>}
-              {knowledgeTab==="noteStep"&&<div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
-                  {EXTENDED_KNOWLEDGE.noteTimingSteps.fiveSteps.map((s,i)=>(
-                    <div key={i} style={{padding:"12px 10px",background:"rgba(255,255,255,0.85)",borderRadius:12,border:`1.5px solid ${C.border}`,textAlign:"center"}}>
-                      <div style={{fontWeight:900,fontSize:16,color:C.purple}}>STEP{s.step}</div>
-                      <div style={{fontWeight:700,fontSize:11,color:C.text,margin:"4px 0"}}>{s.name}</div>
-                      <div style={{fontSize:10,color:C.sub,lineHeight:1.6}}>{s.action}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                  {EXTENDED_KNOWLEDGE.noteTimingSteps.badPatterns.map((p,i)=>(
-                    <div key={i} style={{padding:"10px 12px",background:C.s2,borderRadius:10,border:`1.5px solid ${C.border}`}}>
-                      <div style={{fontWeight:800,fontSize:11,color:"#e74c3c",marginBottom:4}}>❌ {p.name}</div>
-                      <div style={{fontSize:10,color:C.sub,marginBottom:4}}>{p.symptom}</div>
-                      <div style={{fontSize:10,color:C.accent}}>✅ {p.fix}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>}
-              {knowledgeTab==="influence"&&<div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:10}}>
-                  {EXTENDED_KNOWLEDGE.influenceStrategy.replyTypes.map((r,i)=>(
-                    <div key={i} style={{padding:"12px 14px",background:"rgba(255,255,255,0.85)",borderRadius:12,border:`1.5px solid ${C.border}`}}>
-                      <div style={{fontWeight:800,fontSize:12,color:C.purple,marginBottom:6}}>{r.name}</div>
-                      <div style={{fontSize:11,color:C.text,lineHeight:1.6,marginBottom:6}}>{r.pattern}</div>
-                      <div style={{fontSize:10,color:C.accent}}>効果：{r.benefit}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{padding:"12px 14px",background:C.s2,borderRadius:12,border:`1.5px solid ${C.border}`}}>
-                  <div style={{fontWeight:800,fontSize:12,color:C.purple,marginBottom:8}}>距離感の4ルール</div>
-                  {EXTENDED_KNOWLEDGE.influenceStrategy.distanceRules.map((r,i)=>(
-                    <div key={i} style={{fontSize:11,color:C.sub,marginBottom:4}}>📌 {r}</div>
-                  ))}
-                </div>
-              </div>}
-      </div>
-              ))}
-            </div>
-            <div style={card}>
-              <SectionTitle icon="🛒" title="商品ラインナップ" color={C.orange}/>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-                {Object.entries(FUKU_KNOWLEDGE.productLine).map(([k,v])=>(
-                  <div key={k} style={{padding:"12px 14px",background:C.orangeBg,borderRadius:12,border:`1.5px solid ${C.orange}22`}}>
-                    <div style={{fontSize:11,color:C.orange,fontWeight:800,marginBottom:5}}>{k}</div>
-                    <div style={{fontSize:13,color:C.text,lineHeight:1.6}}>{v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {tab === "tests" && (
+          <Card><h2 className="sectionTitle">簡易テスト</h2><p className="note">導線スコア・noteクリック率・CSV・自動分類・ナレッジ読み込みが壊れていないか確認します。</p><div className="stack" style={{ marginTop: 16 }}>{tests.map((test) => <div key={test.name} className="postItem"><div className={test.passed ? "testPass" : "testFail"}>{test.passed ? "PASS" : "FAIL"}</div><p className="postText" style={{ fontWeight: 800 }}>{test.name}</p><p className="meta">expected: {test.expected} / actual: {test.actual}</p></div>)}</div><button className="ghostButton" style={{ marginTop: 16 }} onClick={() => setShowTests(!showTests)}>{showTests ? "テスト詳細を隠す" : "テスト詳細を見る"}</button>{showTests ? <pre className="postItem" style={{ overflowX: "auto", marginTop: 12 }}>{JSON.stringify(tests, null, 2)}</pre> : null}</Card>
         )}
-
-        {tab==="settings"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,maxWidth:900}}>
-            <div>
-              <div style={card}>
-                <SectionTitle icon="🔑" title="APIキー設定" color={C.purple}/>
-                <label style={lbl}>Claude APIキー</label>
-                <input type="password" value={apiInput} onChange={e=>setApiInput(e.target.value)} style={{...inp,marginBottom:10,letterSpacing:2}} placeholder="sk-ant-api03-..."/>
-                <div style={{padding:12,background:C.goldBg,border:`1.5px solid ${C.gold}44`,borderRadius:10,fontSize:12,color:C.gold,marginBottom:14,lineHeight:1.7,fontWeight:700}}>
-                  ⚠️ APIキーは絶対にチャットに貼らないでください。この入力欄に直接入力してください。
-                </div>
-                <button onClick={saveKey} style={{...mkbtn(),width:"100%"}}>{keySaved?"✅ 保存しました！":"🔑 保存する"}</button>
-                {apiKey&&<div style={{marginTop:10,fontSize:12,color:C.green,fontWeight:700}}>✅ 設定済み（{apiKey.slice(0,15)}...）</div>}
-              </div>
-              <div style={{...card,marginTop:14}}>
-                <SectionTitle icon="🗄️" title="データ管理" color={C.orange}/>
-                <div style={{color:C.sub,fontSize:13,marginBottom:12}}>{posts.length} 件の投稿データ保存中</div>
-                <div style={{display:"flex",gap:8,flexDirection:"column"}}>
-                  <button onClick={()=>{if(window.confirm("サンプルデータに戻しますか？"))setPosts(SAMPLE_POSTS);}} style={{...mkbtn(C.purpleBg,C.purple),border:`1.5px solid ${C.border}`,boxShadow:"none",textAlign:"center"}}>サンプルデータに戻す</button>
-                  <button onClick={()=>{if(window.confirm("全投稿データを削除しますか？"))setPosts([]);}} style={{...mkbtn(C.redBg,C.red),border:`1.5px solid ${C.red}44`,boxShadow:"none",textAlign:"center"}}>全データ削除</button>
-                </div>
-              </div>
-            </div>
-            <div style={card}>
-              <SectionTitle icon="👤" title="プロフィール設定" color={C.pink}/>
-              <p style={{color:C.sub,fontSize:12,marginBottom:14,lineHeight:1.7}}>入力するとAI分析の精度が大幅に上がります</p>
-              {[
-                ["goal","収益目標","例：月100万円安定収益"],
-                ["product","主な商品・サービス","例：dododo ChatGPT、note有料記事"],
-                ["target","ターゲット読者","例：副業したいAI初心者"],
-                ["funnel","集客導線","例：Threads→プロフィール→無料note→有料note"],
-                ["message","メインメッセージ","例：AIは難しくない。まずやってみよう"],
-                ["cta","基本CTA","例：プロフィールのnoteにまとめています"],
-              ].map(([k,l,ph])=>(
-                <div key={k} style={{marginBottom:10}}>
-                  <label style={lbl}>{l}</label>
-                  <input value={profile[k]||""} onChange={e=>setProfile(p=>({...p,[k]:e.target.value}))} style={inp} placeholder={ph}/>
-                </div>
-              ))}
-              <button onClick={saveProfile} style={{...mkbtn(C.pink),width:"100%",marginTop:4}}>保存する</button>
-            </div>
-          </div>
-        )}
-
-      </div>
+      </main>
     </div>
   );
 }
