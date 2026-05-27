@@ -1,306 +1,1348 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Threads Analyzer｜ふくさん専用ナレッジ復元版</title>
-  <style>
-    :root{
-      --bg:#fbf7f4;--card:#fffdfb;--line:#e1d1c8;--text:#4f4646;--sub:#8a7b78;
-      --pink:#c46a91;--purple:#8f73b8;--orange:#c98251;--green:#6a9b82;
-      --grad:linear-gradient(135deg,#c56c93,#8f73b8);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;background:
-      radial-gradient(circle at 8% 0%,rgba(255,243,235,.78),transparent 30%),
-      radial-gradient(circle at 88% 8%,rgba(238,229,247,.74),transparent 31%),
-      linear-gradient(135deg,#fbf7f4 0%,#faf6f8 48%,#fff9f3 100%);color:var(--text);min-height:100vh}
-    header{position:sticky;top:0;background:rgba(255,250,247,.9);border-bottom:1px solid var(--line);padding:18px;z-index:10;backdrop-filter:blur(16px)}
-    .wrap{max-width:1180px;margin:0 auto}
-    h1{margin:0;color:#7b5d74;font-size:26px;letter-spacing:-.04em}
-    h2{margin:0 0 14px;color:#7b5d74;font-size:18px}
-    h3{margin:0 0 10px;color:#7b5d74;font-size:15px}
-    .sub{font-size:13px;color:var(--sub);margin-top:6px;line-height:1.7}
-    .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-    button{border:0;border-radius:999px;padding:11px 15px;font-weight:700;cursor:pointer;font-family:inherit}
-    .tab{background:#f3ebe7;color:#78676b;border:1px solid transparent}
-    .tab.active,.primary{background:var(--grad);color:#fff;box-shadow:0 12px 24px rgba(122,91,83,.14)}
-    .ghost{background:#f3ebe7;color:#78676b;border:1px solid var(--line)}
-    .danger{background:#fff0f3;color:#b15f72;border:1px solid #e7c5cc}
-    main{max-width:1180px;margin:0 auto;padding:24px 18px 60px}
-    .panel{display:none}.panel.active{display:block}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .card{background:rgba(255,253,251,.92);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:0 14px 38px rgba(128,98,91,.08);margin-bottom:16px}
-    .stat{text-align:center;min-height:130px;display:flex;flex-direction:column;justify-content:center}
-    .stat b{display:block;font-size:27px;color:var(--pink);margin-top:8px;line-height:1.2}
-    .stat small{color:var(--sub);line-height:1.6;margin-top:6px}
-    textarea,input,select{width:100%;box-sizing:border-box;border:1px solid #d8c7c1;border-radius:16px;padding:12px;font-family:inherit;font-size:15px;background:#fffaf7;color:var(--text)}
-    textarea{min-height:130px;line-height:1.7}
-    label{display:block;margin:10px 0 6px;color:var(--sub);font-weight:700;font-size:13px}
-    .post{border-left:4px solid var(--pink);background:#fff;border-radius:18px;padding:14px;margin:12px 0;white-space:pre-wrap;line-height:1.75}
-    .box{background:linear-gradient(135deg,rgba(255,248,244,.9),rgba(247,242,249,.9));border:1px solid var(--line);border-radius:18px;padding:15px;line-height:1.8;margin:10px 0}
-    .badge{display:inline-block;background:#f8eff4;color:#9f6280;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;margin:3px}
-    .bar{height:10px;background:#f0e7ed;border-radius:999px;overflow:hidden;margin:8px 0}
-    .bar span{display:block;height:100%;background:var(--grad)}
-    .copy{background:#3d3339;color:#fff;border-radius:20px;padding:18px;white-space:pre-wrap;line-height:1.85;margin:10px 0}
-    .muted{color:var(--sub);font-size:13px;line-height:1.75}
-    .mini{font-size:13px;line-height:1.7;color:var(--sub)}
-    .pill{display:inline-block;border-radius:999px;background:#eef7f1;color:#5f9378;padding:6px 10px;font-size:12px;font-weight:700;margin:3px}
-    @media(max-width:900px){.grid,.grid2,.grid3{grid-template-columns:1fr}h1{font-size:23px}}
-  </style>
-</head>
-<body>
-<header>
-  <div class="wrap">
-    <h1>✦ Threads Analyzer</h1>
-    <div class="sub">ふくさん専用｜ボタンが押せる安定版に、発信ナレッジを戻した復元版</div>
-    <div class="tabs">
-      <button class="tab active" onclick="showTab('dashboard',this)">📊 ダッシュボード</button>
-      <button class="tab" onclick="showTab('input',this)">✍️ 投稿入力</button>
-      <button class="tab" onclick="showTab('next',this)">🧭 次の一手</button>
-      <button class="tab" onclick="showTab('drafts',this)">✨ 投稿生成</button>
-      <button class="tab" onclick="showTab('knowledge',this)">🧠 ナレッジ</button>
-      <button class="tab" onclick="showTab('funnel',this)">🪜 導線設計</button>
-      <button class="tab" onclick="showTab('test',this)">✅ 動作確認</button>
-    </div>
-  </div>
-</header>
+import { useMemo, useState } from "react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
-<main>
-  <section id="dashboard" class="panel active"></section>
-  <section id="input" class="panel"></section>
-  <section id="next" class="panel"></section>
-  <section id="drafts" class="panel"></section>
-  <section id="knowledge" class="panel"></section>
-  <section id="funnel" class="panel"></section>
-  <section id="test" class="panel">
-    <div class="card">
-      <h2>✅ 動作確認</h2>
-      <p>このボタンを押してメッセージが出たら、JavaScriptは動いています。</p>
-      <button class="primary" onclick="alert('動いてるよ！ここまでOK！')">テストボタン</button>
-    </div>
-  </section>
-</main>
+const NL = String.fromCharCode(10);
 
-<script>
-var KNOWLEDGE={
-  position:"弁護士ではなく、調停離婚を経験した三姉妹の母。専門家として上から教えるのではなく、同じように悩むママへ損しない準備の道順を渡す先輩ママ。",
-  target:"夫の顔色をうかがいながら、子ども・生活費・住まい・養育費・将来が怖くて離婚に動けない30〜40代ママ。",
-  one:"夜、夫の足音や鍵の音で体が固まり、子どもの寝顔を見ながら『離婚したい。でもお金も住む場所も養育費も怖い』と検索している30〜40代のママ。",
-  message:"今すぐ離婚しなくていい。でも、自分と子どもを守る材料は集めていい。",
-  rule:"Threadsは感情的な驚き・共感で反応される場。noteは思考的な説得・納得で購入される場。",
-  funnel:"見られる投稿＝認知、保存される投稿＝信頼、売れる投稿＝導線。バズと購入は別物として分析する。",
-  roles:[
-    ["認知","読者が『あ、これ私』と足を止める投稿。強い1行目・共感・情景描写が大事。"],
-    ["信頼","保存される実務投稿。お金、証拠、調停、養育費、制度、準備の順番をやさしく整理。"],
-    ["導線","売り込まず、脈絡を作ってプロフィール/noteへ橋を置く投稿。"],
-    ["レビュー","売れた事実・読者の声・追記予告で安心感と人気感を作る投稿。"],
-    ["制作過程","『最近相談が多いのでまとめています』など、必要だから作った流れを見せる投稿。"]
-  ],
-  hooks:[
-    "離婚で損する人の9割が知らないことがあります。",
-    "調停で損しない人と損する人の違い、ほとんどの人が知らない。",
-    "証拠収集で絶対やってはいけないこと。",
-    "離婚したい。でも怖い。でも損したくない人へ。",
-    "夫の『ただいま』が怖い人へ。",
-    "子どものために、まだ我慢してる？",
-    "それ、お金の管理じゃなくて支配かもしれない。",
-    "今すぐ離婚しなくていい。でも準備は始めていい。"
-  ],
-  pain:[
-    "夫の帰宅音・足音・鍵の音で体が固まる",
-    "生活費を握られ、10円単位で責められる",
-    "子どもの前で母親を罵倒される",
-    "外面が良く、被害を信じてもらえない",
-    "離婚後の生活費・住まい・養育費が怖い",
-    "証拠がないと思い込んで動けない",
-    "父親を奪う罪悪感で決められない",
-    "調停で夫が嘘をつくのが怖い",
-    "夜にこっそり検索して、また朝になる"
-  ],
-  bridge:[
-    "必要であれば、プロフィールのnoteにまとめています。",
-    "今すぐ離婚を決めなくていいので、まず準備の順番だけ見てみてください。",
-    "離婚するかどうかより先に、自分と子どもを守る材料を集めていい。",
-    "ひとりで抱えなくていいように、私の経験をまとめました。",
-    "怖くて動けない人ほど、まずは見える化からで大丈夫。"
-  ],
-  avoid:[
-    "法律の断定をしすぎない",
-    "読者を責める『覚悟がないだけ』系にしない",
-    "傾聴投稿で強く売らない",
-    "煽りすぎて読者を不安に置き去りにしない",
-    "専門家のように上から教えない",
-    "Threads本文だけで全部売ろうとしない"
-  ]
-};
+const HOOK_TYPES = ["質問型", "数字型", "共感型", "逆説型", "ストーリー型", "診断型", "情報緊急型", "その他"];
+const POST_ROLES = ["認知", "共感", "信頼", "導線", "販売", "レビュー", "制作過程", "その他"];
+const READER_PSYCHES = ["怖い", "動けない", "お金が不安", "子どもが不安", "証拠がない", "調停が怖い", "罪悪感", "孤独", "今すぐ知りたい", "その他"];
+const DAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const CSV_COLUMNS = ["text", "date", "time", "likes", "replies", "reposts", "views", "fc", "noteClicks", "noteSales", "hookType", "role", "readerPsyche"];
 
-var posts=[
-{text:"離婚したいのに動けない理由って、愛情があるからじゃなくて、生活費と子どもの未来が怖いからなんだよね。",time:"21:00",likes:520,replies:88,reposts:64,views:26000,clicks:18,sales:1,type:"共感型",role:"共感",psyche:"お金が不安"},
-{text:"離婚前に見るべきお金は4つ。貯金、生活費、学費、退職金と年金。ここを見ないまま動くと不安が増える。",time:"12:00",likes:310,replies:31,reposts:74,views:18500,clicks:29,sales:2,type:"数字型",role:"信頼",psyche:"お金が不安"},
-{text:"夫のただいまが怖い人へ。あなたが弱いんじゃない。身体が危険を覚えてしまってるだけ。必要なら、誰にも気づかれず始める心の離婚準備をプロフィールに置いています。",time:"22:00",likes:740,replies:166,reposts:112,views:42000,clicks:56,sales:3,type:"共感型",role:"導線",psyche:"怖い"},
-{text:"調停で一番大事なのは、うまく話すことじゃなくて、事実と数字を先に整理しておくこと。感情を責められた人ほど、準備が盾になる。",time:"15:00",likes:260,replies:24,reposts:58,views:15000,clicks:16,sales:1,type:"逆説型",role:"信頼",psyche:"調停が怖い"},
-{text:"また1歩、動き出してくださった方がいました。私のnoteを選んでくれてありがとうございます。週末に、調停前チェックの追記をします。",time:"22:00",likes:190,replies:18,reposts:21,views:9200,clicks:42,sales:2,type:"ストーリー型",role:"レビュー",psyche:"今すぐ知りたい"}
+const THREADS_SCOPE_OPTIONS = ["threads_basic", "threads_content_publish", "threads_manage_insights", "threads_read_replies"];
+const THREADS_API_NOTES = [
+  "Reactだけで本番連携はしない。Client Secretと長期アクセストークンはバックエンドに置く。",
+  "Meta for DevelopersでThreads APIユースケースのアプリを作成する。",
+  "OAuthリダイレクトURL、データ削除URL、プライバシーポリシーURLをMeta側に登録する。",
+  "Threadsアカウントで認可し、バックエンドでcodeをaccess_tokenへ交換する。",
+  "投稿本文・投稿日・インサイトを取得し、このアプリの投稿データ形式に正規化する。",
 ];
 
-function showTab(id,btn){
-  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
-  document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active')});
-  if(btn)btn.classList.add('active');
+const THREADS_CREDENTIAL_TYPES = [
+  {
+    name: "Threads App ID / Client ID",
+    safeForFrontend: true,
+    whatItLooksLike: "数字だけのIDであることが多い。例：1234567890",
+    whereToUse: "React画面の Threads App ID / Client ID 欄。認可URLの client_id に入る。",
+    warning: "これだけでは投稿取得はできない。認可URLを作る入口用。",
+  },
+  {
+    name: "App Secret / Client Secret",
+    safeForFrontend: false,
+    whatItLooksLike: "長い英数字。secret、app_secret、client_secret などの名前で表示される。",
+    whereToUse: "バックエンドだけ。code を access_token に交換する時に使う。",
+    warning: "React画面やチャットに貼らない。外に出すと危険。",
+  },
+  {
+    name: "Access Token / User Access Token",
+    safeForFrontend: false,
+    whatItLooksLike: "EA で始まることが多い長い文字列。token、access_token などの名前で表示される。",
+    whereToUse: "バックエンドからThreads APIを叩く時に使う。テストだけなら一時利用は可能。",
+    warning: "中身は鍵そのもの。ここにもチャットにも貼らない。",
+  },
+  {
+    name: "Client Token",
+    safeForFrontend: false,
+    whatItLooksLike: "Metaアプリ設定にあるClient Token。名前が似ていて紛らわしい。",
+    whereToUse: "今回のThreads投稿取得では基本的に主役ではない。",
+    warning: "App ID欄に入れても認可エラーになりやすい。",
+  },
+  {
+    name: "Redirect URI / Callback URL",
+    safeForFrontend: true,
+    whatItLooksLike: "https://example.com/threads/callback のようなURL。",
+    whereToUse: "React画面のOAuthリダイレクトURL欄と、Meta側の有効なOAuthリダイレクトURIに完全一致で登録。",
+    warning: "末尾スラッシュ、https、wwwの有無まで一致が必要。",
+  },
+];
+
+const FUKU_KNOWLEDGE = {
+  corePosition: "弁護士ではなく、調停離婚を経験した三姉妹の母。専門家として上から教えるのではなく、同じように悩むママへ損しない準備の道順を渡す先輩ママ。",
+  target: "夫の顔色をうかがいながら、子ども・生活費・住まい・養育費・将来が怖くて離婚に動けない30〜40代ママ。",
+  onePersonTarget: "夜、夫の足音や鍵の音で体が固まり、子どもの寝顔を見ながら『離婚したい。でもお金も住む場所も養育費も怖い』と検索している30〜40代のママ。",
+  mainMessage: "今すぐ離婚しなくていい。でも、自分と子どもを守る材料は集めていい。",
+  brandPromise: "怖くて動けない人に、感情論ではなく準備の順番を渡す。離婚を決めさせるのではなく、判断できる状態に戻す。",
+  platformRule: "Threadsは感情的な驚き・共感で反応される場。noteは思考的な説得・納得で購入される場。Threadsで売り切らず、問題提起・感情の揺さぶり・自分ごと化までに留める。",
+  funnelRule: "見られる投稿＝認知、保存される投稿＝信頼、売れる投稿＝導線。バズと購入は別物として分析する。",
+  productLine: {
+    main: "離婚前に損しない準備をまとめたnote / マガジン",
+    lowTicket: "調停前・弁護士の使い方・証拠収集などの500〜980円note",
+    highTicket: "証拠・調停・養育費・財産分与までまとめた高単価note / マガジン",
+    freeLead: "離婚前に確認するお金・制度・生活チェックリスト",
+  },
+  readerStates: [
+    "夫の帰宅音・足音・ただいまで体が固まる",
+    "離婚したいけど生活費・住まい・養育費が怖い",
+    "子どものために我慢しているが、本当に子どものためか迷っている",
+    "証拠がない、何を残せばいいかわからない",
+    "調停・弁護士・公正証書などの言葉だけで怖くなる",
+    "自分が悪いのかもしれないと罪悪感を抱えている",
+    "外面のいい夫のせいで誰にも信じてもらえない",
+    "夜にこっそり検索して、検索履歴を消している",
+  ],
+  contentRoles: [
+    "情景描写：夫の帰宅音、足音、ドア、夜の検索などで読者を止める",
+    "Before/After：怖くて動けない状態から、準備ならできそうへ",
+    "葛藤言語化：離婚したい。でも怖い。でも損したくない",
+    "傾聴投稿：返信・自己開示を生む。ここでは強く売らない",
+    "知らないと損する情報：お金、証拠、調停、養育費、制度",
+    "制作中/商品予告：必要だったから用意した流れを作る",
+    "証拠/実績：30部突破、読者の声、売れた報告、読後の変化",
+    "価値観/敵の明確化：我慢を美徳にしない。準備は悪いことじゃない",
+  ],
+  winningPatterns: [
+    "共感 → 罪悪感解除 → 準備ならできる → プロフィール/note",
+    "怖い情景 → それは弱さではない → 記録・お金・相談先などの次の一歩",
+    "知らないと損する情報 → 4つ/5つの確認項目 → 詳細はnote",
+    "売れた報告 → 感謝 → 追記予告 → 今見ておく理由",
+    "診断/チェック → ひとつでも当てはまるなら → 今すぐ離婚ではなく準備",
+    "常識の否定 → 実は大事な順番 → ふくさんの実体験",
+    "脈絡づくり → 最近同じ相談が多い → 必要だったからまとめた",
+    "無料note → 不安の整理 → 有料note/マガジンで具体手順",
+  ],
+  hookRules: [
+    "冒頭1行で読むか決めさせる",
+    "知らないと損する・9割が知らないなど情報緊急性を混ぜる",
+    "あなたはどれ？の診断・分類型で返信を生む",
+    "常識を少し否定する。例：損するのは準備不足より順番ミス",
+    "数字・固有名詞・ステップ数を入れて保存理由を作る",
+    "専門用語ではなく、読者の生活の言葉に翻訳する",
+    "読者の今の悩みを先に言い、制度や手順は後から置く",
+  ],
+  noteBridge: [
+    "詳しくはプロフィールのnoteにまとめています",
+    "必要であれば見てみてください",
+    "離婚するかどうかより先に、まず準備の順番を確認してほしい",
+    "ひとりで抱えなくていいように、私が調停前にやったことをまとめました",
+    "今すぐ決めなくていい。でも、損しない準備だけは始めていい",
+    "この投稿で心当たりがある人向けに、調停前の準備をまとめています",
+    "怖くて動けない人が、最初に確認することだけ整理しました",
+  ],
+  avoid: [
+    "法律の断定をしすぎない",
+    "医療・発達障害などを決めつけない",
+    "読者を責める覚悟がないだけ系にしない",
+    "傾聴投稿で強く売らない",
+    "Threads本文だけで全部説明して売ろうとしない",
+    "共感だけで終わらせず、次の一歩を1つ置く",
+    "煽りすぎて読者を不安に置き去りにしない",
+    "専門家っぽく上から言い切りすぎない",
+  ],
+  productThemes: [
+    "離婚前に確認するお金・制度・生活チェックリスト",
+    "証拠収集の始め方",
+    "調停前に決めたい条件整理",
+    "養育費・財産分与・年金分割・進学費用",
+    "子どもを守る準備",
+    "モラハラに気づくための言語化",
+    "夫のただいまが怖い人の心の離婚準備",
+    "離婚届不受理申出・児童手当・婚姻費用などの初動整理",
+  ],
+};
+
+const DEFAULT_PROFILE = {
+  target: FUKU_KNOWLEDGE.target,
+  onePersonTarget: FUKU_KNOWLEDGE.onePersonTarget,
+  position: FUKU_KNOWLEDGE.corePosition,
+  brandPromise: FUKU_KNOWLEDGE.brandPromise,
+  product: FUKU_KNOWLEDGE.productLine.main,
+  freeLead: FUKU_KNOWLEDGE.productLine.freeLead,
+  goal: "Threadsからプロフィール経由でnote / マガジン購入につなげる",
+  mainMessage: FUKU_KNOWLEDGE.mainMessage,
+  funnelDesign: "認知投稿で見つけてもらい、共感投稿で自己開示を生み、信頼投稿で保存され、導線投稿でプロフィール/noteへ進ませ、レビュー投稿で安心と人気感を積む。",
+  cta: "必要であればプロフィールのnoteにまとめています。今すぐ離婚を決めなくていいので、まず準備の順番だけ見てみてください。",
+  avoidTone: FUKU_KNOWLEDGE.avoid.join(NL),
+  winningPatterns: FUKU_KNOWLEDGE.winningPatterns.join(NL),
+};
+
+const SAMPLE_POSTS = [
+  { id: "1", text: "離婚したいのに動けない理由って、愛情があるからじゃなくて、生活費と子どもの未来が怖いからなんだよね。", date: "2026-05-20", time: "21:00", likes: 520, replies: 88, reposts: 64, views: 26000, fc: 42, noteClicks: 18, noteSales: 1, hookType: "共感型", role: "共感", readerPsyche: "お金が不安" },
+  { id: "2", text: "離婚前に見るべきお金は4つ。貯金、生活費、学費、退職金と年金。ここを見ないまま動くと不安が増える。", date: "2026-05-21", time: "12:00", likes: 310, replies: 31, reposts: 74, views: 18500, fc: 28, noteClicks: 29, noteSales: 2, hookType: "数字型", role: "信頼", readerPsyche: "お金が不安" },
+  { id: "3", text: "夫のただいまが怖い人へ。あなたが弱いんじゃない。身体が危険を覚えてしまってるだけ。必要なら、誰にも気づかれず始める心の離婚準備をプロフィールに置いています。", date: "2026-05-22", time: "22:00", likes: 740, replies: 166, reposts: 112, views: 42000, fc: 91, noteClicks: 56, noteSales: 3, hookType: "共感型", role: "導線", readerPsyche: "怖い" },
+  { id: "4", text: "調停で一番大事なのは、うまく話すことじゃなくて、事実と数字を先に整理しておくこと。感情を責められた人ほど、準備が盾になる。", date: "2026-05-23", time: "15:00", likes: 260, replies: 24, reposts: 58, views: 15000, fc: 18, noteClicks: 16, noteSales: 1, hookType: "逆説型", role: "信頼", readerPsyche: "調停が怖い" },
+  { id: "5", text: "また1歩、動き出してくださった方がいました。私のnoteを選んでくれてありがとうございます。週末に、調停前チェックの追記をします。", date: "2026-05-24", time: "22:00", likes: 190, replies: 18, reposts: 21, views: 9200, fc: 12, noteClicks: 42, noteSales: 2, hookType: "ストーリー型", role: "レビュー", readerPsyche: "今すぐ知りたい" },
+];
+
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
-function n(v){v=Number(v);return isFinite(v)?v:0}
-function eg(p){return p.views?((n(p.likes)+n(p.replies)*3+n(p.reposts)*2)/n(p.views)*100):0}
-function clickRate(p){return p.views?(n(p.clicks)/n(p.views)*100):0}
-function salesRate(p){return p.clicks?(n(p.sales)/n(p.clicks)*100):0}
-function funnel(p){
-  var s=0,e=eg(p),cr=clickRate(p),sr=salesRate(p),t=p.text||"";
-  if(e>=2)s+=18;else if(e>=1)s+=12;else if(e>.5)s+=7;
-  if(cr>=.12)s+=22;else if(cr>=.06)s+=15;else if(cr>0)s+=8;
-  if(sr>=5)s+=25;else if(sr>=2)s+=16;else if(sr>0)s+=9;
-  if(["導線","販売","信頼","レビュー"].includes(p.role))s+=10;
-  if(/プロフィール|note|準備|追記|まとめ|必要であれば/.test(t))s+=10;
-  if(/怖い|動けない|子ども|生活費|養育費|調停|証拠|お金|離婚|モラハラ/.test(t))s+=7;
-  return Math.min(100,s);
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
-function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-function classify(t){
-  var type="共感型",role="共感",psyche="怖い";
-  if(/\d|4つ|ステップ|項目|選/.test(t))type="数字型";
-  if(/知らないと損|絶対|今すぐ|注意|やってはいけない|9割/.test(t))type="情報緊急型";
-  if(/診断|チェック|当てはまる|ひとつでも/.test(t))type="診断型";
-  if(/じゃなくて|実は|一番大事|よりも/.test(t))type="逆説型";
-  if(/私|あの日|また1歩|選んでくれて|経験|調停離婚/.test(t))type="ストーリー型";
-  if(/プロフィール|note|まとめ|マガジン|リンク/.test(t))role="導線";
-  else if(/売れ|購入|選んでくれて|ありがとう|追記|レビュー/.test(t))role="レビュー";
-  else if(/調停|養育費|証拠|制度|お金|確認|財産分与|年金|生活費/.test(t))role="信頼";
-  if(/お金|生活費|貯金|学費|養育費|家賃|年金|財産分与/.test(t))psyche="お金が不安";
-  if(/子ども|子供|親権|転校|進学|学校/.test(t))psyche="子どもが不安";
-  if(/証拠|録音|記録|日記|LINE/.test(t))psyche="証拠がない";
-  if(/調停|裁判所|公正証書/.test(t))psyche="調停が怖い";
-  if(/罪悪感|父親を奪う|我慢/.test(t))psyche="罪悪感";
-  if(/今すぐ|知らないと損|絶対|注意/.test(t))psyche="今すぐ知りたい";
-  if(/怖い|帰宅|ただいま|足音|鍵|心臓|動悸/.test(t))psyche="怖い";
-  return {type:type,role:role,psyche:psyche};
+
+function engagementRate(post) {
+  const views = toNumber(post.views);
+  if (views <= 0) return 0;
+  const score = toNumber(post.likes) + toNumber(post.replies) * 3 + toNumber(post.reposts) * 2;
+  return Number(((score / views) * 100).toFixed(2));
 }
-function bestTime(){
-  var map={};
-  posts.forEach(function(p){
-    var h=(p.time||"00:00").split(":")[0]+":00";
-    if(!map[h])map[h]={h:h,count:0,score:0,clicks:0,sales:0};
-    map[h].count++;map[h].score+=funnel(p);map[h].clicks+=n(p.clicks);map[h].sales+=n(p.sales);
+
+function clickRate(post) {
+  const views = toNumber(post.views);
+  if (views <= 0) return 0;
+  return Number(((toNumber(post.noteClicks) / views) * 100).toFixed(2));
+}
+
+function salesRate(post) {
+  const clicks = toNumber(post.noteClicks);
+  if (clicks <= 0) return 0;
+  return Number(((toNumber(post.noteSales) / clicks) * 100).toFixed(2));
+}
+
+function profileAlignmentScore(post, profile = DEFAULT_PROFILE) {
+  const text = String(post.text || "");
+  let score = 0;
+  ["夫", "子ども", "生活費", "養育費", "調停", "証拠", "お金", "怖い", "準備", "離婚", "モラハラ"].forEach((word) => {
+    if (text.includes(word)) score += 4;
   });
-  var arr=Object.values(map).map(function(x){x.avg=Math.round(x.score/x.count);return x}).sort(function(a,b){return b.avg-a.avg});
-  return arr[0]||{h:"データ待ち",avg:0,clicks:0,sales:0};
+  if (/今すぐ離婚|決めなくていい|準備|守る材料|順番/.test(text)) score += 16;
+  if (/プロフィール|note|マガジン|まとめ/.test(text)) score += 12;
+  if (/弁護士|調停|養育費|財産分与|年金|公正証書|不受理/.test(text)) score += 8;
+  if (/怖い|動けない|罪悪感|ひとり|検索|ただいま|帰宅音/.test(text)) score += 10;
+  if (profile?.mainMessage && text.includes("準備")) score += 6;
+  return clamp(score, 0, 100);
 }
-function badge(v){return '<span class="badge">'+esc(v)+'</span>'}
-function bar(v){return '<div class="bar"><span style="width:'+Math.min(100,v)+'%"></span></div>'}
-function stat(label,value,note,color){
-  return '<div class="card stat"><span class="muted">'+esc(label)+'</span><b style="color:'+color+'">'+esc(value)+'</b><small>'+esc(note||"")+'</small></div>'
+
+function funnelScore(post, profile = DEFAULT_PROFILE) {
+  let score = 0;
+  const text = String(post.text || "");
+  const eg = engagementRate(post);
+  const cr = clickRate(post);
+  const sr = salesRate(post);
+  if (eg >= 2) score += 18;
+  else if (eg >= 1) score += 12;
+  else if (eg >= 0.5) score += 7;
+  if (cr >= 0.12) score += 22;
+  else if (cr >= 0.06) score += 15;
+  else if (cr > 0) score += 8;
+  if (sr >= 5) score += 25;
+  else if (sr >= 2) score += 16;
+  else if (sr > 0) score += 9;
+  if (["導線", "販売", "信頼", "レビュー"].includes(post.role)) score += 10;
+  if (["怖い", "お金が不安", "調停が怖い", "証拠がない", "今すぐ知りたい"].includes(post.readerPsyche)) score += 8;
+  if (/プロフィール|note|まとめ|必要であれば|見てみて|準備|追記|選んでくれて/.test(text)) score += 10;
+  if (/怖い|動けない|子ども|生活費|養育費|調停|証拠|お金|離婚|モラハラ/.test(text)) score += 7;
+  score += Math.round(profileAlignmentScore(post, profile) * 0.18);
+  return clamp(score, 0, 100);
 }
-function renderDashboard(){
-  var avg=posts.length?(posts.reduce(function(s,p){return s+eg(p)},0)/posts.length).toFixed(2):"0.00";
-  var clicks=posts.reduce(function(s,p){return s+n(p.clicks)},0);
-  var sales=posts.reduce(function(s,p){return s+n(p.sales)},0);
-  var bt=bestTime();
-  var sorted=posts.slice().sort(function(a,b){return funnel(b)-funnel(a)});
-  document.getElementById("dashboard").innerHTML=
-  '<div class="grid">'+
-  stat("総投稿数",posts.length+"件","分析中の投稿数","#8f73b8")+
-  stat("平均EG率",avg+"%","返信は重めに評価","#c46a91")+
-  stat("勝ち時間",bt.h,"導線スコア平均 "+bt.avg+"点","#c98251")+
-  stat("note成果",clicks+"クリック / "+sales+"部","購入まで見る","#6a9b82")+
-  '</div>'+
-  '<div class="grid2"><div class="card"><h2>🧠 ふく式・現在の診断</h2>'+
-  '<div class="box"><b>忘れない軸</b><br>'+esc(KNOWLEDGE.message)+'</div>'+
-  '<div class="box"><b>次に見ること</b><br>バズだけでなく、noteクリック・購入・プロフィール導線につながった投稿を優先して増やす。</div>'+
-  '</div><div class="card"><h2>🕯️ 勝ち時間メモ</h2><p>今のところ <b>'+esc(bt.h)+'台</b> が強め。</p><p class="muted">投稿数が増えるほど、ふくさんだけのゴールデンタイムが見えます。</p></div></div>'+
-  '<div class="card"><h2>導線スコアランキング</h2>'+
-  sorted.map(function(p,i){var f=funnel(p);return '<div class="post"><div><b>#'+(i+1)+'</b> '+badge(p.type)+badge(p.role)+badge(p.psyche)+badge("導線 "+f+"点")+'</div>'+bar(f)+esc(p.text)+'<p class="mini">EG '+eg(p).toFixed(2)+'% / noteクリック率 '+clickRate(p).toFixed(2)+'% / note購入率 '+salesRate(p).toFixed(2)+'% / note '+p.clicks+'クリック・'+p.sales+'部</p></div>'}).join("")+
-  '</div>';
+
+function makeId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-function renderInput(){
-  document.getElementById("input").innerHTML=
-  '<div class="grid2"><div class="card"><h2>投稿を追加</h2>'+
-  '<label>投稿本文</label><textarea id="newText" placeholder="投稿本文を入れる"></textarea>'+
-  '<div class="grid2"><div><label>時間</label><input id="newTime" type="time" value="21:00"></div><div><label>閲覧数</label><input id="views" type="number" value="0"></div></div>'+
-  '<div class="grid3"><div><label>いいね</label><input id="likes" type="number" value="0"></div><div><label>返信</label><input id="replies" type="number" value="0"></div><div><label>リポスト</label><input id="reposts" type="number" value="0"></div></div>'+
-  '<div class="grid2"><div><label>noteクリック</label><input id="clicks" type="number" value="0"></div><div><label>note購入</label><input id="sales" type="number" value="0"></div></div>'+
-  '<p><button class="primary" onclick="addPost()">追加する</button></p></div>'+
-  '<div class="card"><h2>入力済み</h2><div id="postList"></div></div></div>';
-  document.getElementById("postList").innerHTML=posts.map(function(p,i){return '<div class="post">'+badge(p.type)+badge(p.role)+badge(p.psyche)+'<br>'+esc(p.text)+'<p><button class="ghost" onclick="removePost('+i+')">削除</button></p></div>'}).join("");
+
+function postDateTime(post) {
+  const date = post.date || "1970-01-01";
+  const time = post.time || "00:00";
+  const d = new Date(`${date}T${time}:00`);
+  return Number.isNaN(d.getTime()) ? new Date("1970-01-01T00:00:00") : d;
 }
-function addPost(){
-  var text=document.getElementById("newText").value.trim();
-  if(!text){alert("投稿本文を入れてね");return}
-  var c=classify(text);
-  posts.unshift({text:text,time:document.getElementById("newTime").value,likes:n(document.getElementById("likes").value),replies:n(document.getElementById("replies").value),reposts:n(document.getElementById("reposts").value),views:n(document.getElementById("views").value),clicks:n(document.getElementById("clicks").value),sales:n(document.getElementById("sales").value),type:c.type,role:c.role,psyche:c.psyche});
-  renderAll();showTab("input",document.querySelector('[onclick*="input"]'));
+
+function daysBetween(a, b) {
+  return (postDateTime(b).getTime() - postDateTime(a).getTime()) / (1000 * 60 * 60 * 24);
 }
-function removePost(i){posts.splice(i,1);renderAll();showTab("input",document.querySelector('[onclick*="input"]'))}
-function recommend(){
-  var guide=posts.filter(function(p){return p.role==="導線"}).length;
-  var trust=posts.filter(function(p){return p.role==="信頼"}).length;
-  var empathy=posts.filter(function(p){return p.role==="共感"}).length;
-  var sales=posts.reduce(function(s,p){return s+n(p.sales)},0);
-  if(empathy>=posts.length*.4 && trust<posts.length*.3)return {hook:"数字型",role:"信頼",theme:"離婚前に確認する4つのお金",reason:"共感が多め。次は保存される実務投稿で、購入前の納得を作るのがよさそう。"};
-  if(guide<Math.max(1,Math.floor(posts.length*.2)))return {hook:"ストーリー型",role:"導線",theme:"誰にも気づかれず始める離婚準備",reason:"導線が少なめ。売り込まず、脈絡を作ってプロフィール/noteへ橋を置くタイミング。"};
-  if(sales>0)return {hook:"ストーリー型",role:"レビュー",theme:"また1歩、動き出してくださった方がいました",reason:"noteが売れているので、感謝・追記予告・読者の変化を見せると安心感が積み上がる。"};
-  return {hook:"診断型",role:"返信誘発",theme:"それ、モラハラかもしれないチェック",reason:"返信や自己開示を生む診断投稿が合います。"};
+
+function classifyPost(text) {
+  const t = String(text || "");
+  let hookType = "共感型";
+  let role = "共感";
+  let readerPsyche = "怖い";
+  if (/\d|[0-9]|[一二三四五六七八九十]つ|選|ステップ|項目/.test(t)) hookType = "数字型";
+  if (/知らないと損|損する|9割|絶対|今すぐ|注意|やってはいけない/.test(t)) hookType = "情報緊急型";
+  if (/これ、当てはまる|あなたはどれ|診断|チェック|ひとつでも/.test(t)) hookType = "診断型";
+  if (/じゃなくて|実は|本当は|一番大事なのは|よりも/.test(t)) hookType = "逆説型";
+  if (/私|あの日|昨日|また1歩|選んでくれて|経験|調停離婚/.test(t)) hookType = "ストーリー型";
+  if (/\?|？|どう思う|わかる/.test(t)) hookType = "質問型";
+  if (/プロフィール|note|必要であれば|見てみて|まとめました|リンク|マガジン/.test(t)) role = "導線";
+  else if (/売れ|購入|選んでくれて|ありがとうございます|追記|レビュー|読者の声/.test(t)) role = "レビュー";
+  else if (/作って|制作|追加|準備中|週末に|近日/.test(t)) role = "制作過程";
+  else if (/4つ|確認|チェック|調停|養育費|証拠|制度|財産分与|年金/.test(t)) role = "信頼";
+  else if (/怖い|つらい|苦しい|動けない|心臓|泣/.test(t)) role = "共感";
+  if (/お金|生活費|貯金|学費|養育費|家賃|年金|財産分与/.test(t)) readerPsyche = "お金が不安";
+  if (/子ども|子供|親権|転校|進学|学校/.test(t)) readerPsyche = "子どもが不安";
+  if (/証拠|録音|記録|日記|LINE/.test(t)) readerPsyche = "証拠がない";
+  if (/調停|裁判所|公正証書|離婚届不受理/.test(t)) readerPsyche = "調停が怖い";
+  if (/罪悪感|父親を奪う|私が悪い|我慢/.test(t)) readerPsyche = "罪悪感";
+  if (/ひとり|孤独|誰にも|相談/.test(t)) readerPsyche = "孤独";
+  if (/今すぐ|知らないと損|絶対|注意|やってはいけない/.test(t)) readerPsyche = "今すぐ知りたい";
+  if (/怖い|帰宅|ただいま|足音|鍵|心臓|動悸/.test(t)) readerPsyche = "怖い";
+  return { hookType, role, readerPsyche };
 }
-function renderNext(){
-  var r=recommend();
-  document.getElementById("next").innerHTML=
-  '<div class="card"><h2>次に出すべき投稿</h2><div class="box"><b>'+esc(r.hook)+' × '+esc(r.role)+'</b><br>'+esc(r.reason)+'</div>'+
-  '<div class="box"><b>推奨テーマ</b><br>'+esc(r.theme)+'</div></div>'+
-  '<div class="card"><h2>そのまま使える下書き</h2><div class="copy">'+esc(makeDraft(r.theme,r.role))+'</div></div>';
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
 }
-function makeDraft(theme,role){
-  if(role==="信頼")return "離婚前に見ておくべきお金は、まず4つ。\n\n・毎月の生活費\n・子どもの学費\n・今ある貯金\n・養育費や年金分割\n\n全部完璧じゃなくていい。\nでも、ここが見えるだけで『怖い』が少しだけ『考えられる』に変わります。";
-  if(role==="導線")return "最近、「"+theme+"」について同じ悩みをよく見ます。\n\n私も最初は、何から始めたらいいか分かりませんでした。\nでも、調停前に準備しておいてよかったことがあります。\n\n必要であれば、プロフィールのnoteにまとめています。";
-  if(role==="レビュー")return "また1歩、動き出してくださった方がいました。\n\n私のnoteを選んでくれてありがとうございます。\n\n離婚するかどうかより先に、まず自分と子どもを守る準備を知ってほしい。\n週末に、調停前チェックも追記します。";
-  return "これ、当てはまる？\n\n・夫の帰宅音で体が固まる\n・生活費の話をすると責められる\n・子どもの前では笑ってしまう\n・夜にこっそり離婚を検索する\n\nひとつでもあるなら、今すぐ離婚じゃなくていい。まず準備からで大丈夫。";
+
+function normalizePost(post) {
+  const auto = classifyPost(post.text);
+  return {
+    id: post.id || makeId(),
+    text: String(post.text || "").trim(),
+    date: post.date || new Date().toISOString().slice(0, 10),
+    time: post.time || "21:00",
+    likes: toNumber(post.likes),
+    replies: toNumber(post.replies),
+    reposts: toNumber(post.reposts),
+    views: toNumber(post.views),
+    fc: toNumber(post.fc),
+    noteClicks: toNumber(post.noteClicks),
+    noteSales: toNumber(post.noteSales),
+    hookType: post.hookType || auto.hookType,
+    role: post.role || auto.role,
+    readerPsyche: post.readerPsyche || auto.readerPsyche,
+  };
 }
-function renderDrafts(){
-  document.getElementById("drafts").innerHTML=
-  '<div class="card"><h2>投稿生成</h2><p class="muted">テーマを入れると、ふく式ナレッジに沿って3パターン出します。</p><label>テーマ</label><input id="theme" value="夫のただいまが怖い"><p><button class="primary" onclick="makeDrafts()">生成する</button></p></div>'+
-  '<div class="card"><h2>生成結果</h2><div id="draftOut"></div></div>';
-  makeDrafts();
+
+function parseCsv(text) {
+  const lines = String(text || "").split(/\r?\n/).filter((line) => line.trim() !== "");
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]).map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const obj = {};
+    headers.forEach((h, index) => {
+      obj[h] = values[index] ?? "";
+    });
+    const auto = classifyPost(obj.text);
+    return normalizePost({ ...obj, hookType: obj.hookType || auto.hookType, role: obj.role || auto.role, readerPsyche: obj.readerPsyche || auto.readerPsyche });
+  }).filter((post) => post.text);
 }
-function makeDrafts(){
-  var t=document.getElementById("theme")?document.getElementById("theme").value:"夫のただいまが怖い";
-  var out=[
-    "【共感型】\n"+t+"って、経験した人にしかわからない怖さがある。\n\nでもね、今すぐ離婚を決めなくていい。\nまずは、自分と子どもを守る材料を集めるだけでいい。",
-    "【情報緊急型】\n離婚前に知らないと損する人が多いです。\n\n"+t+"で苦しい時ほど、感情で動く前に\n・お金\n・証拠\n・住まい\n・子どもの生活\nこの4つだけ先に確認して。",
-    "【導線型】\n最近、"+t+"について同じ相談が増えています。\n\nだから、私が調停前にやってよかった準備をまとめました。\n必要であれば、プロフィールのnoteから見てみてください。"
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function postsToCsv(posts) {
+  const header = CSV_COLUMNS.join(",");
+  const rows = posts.map((post) => CSV_COLUMNS.map((key) => csvEscape(post[key])).join(","));
+  return [header, ...rows].join(NL);
+}
+
+function hourLabel(hour) {
+  const h = Number(hour);
+  if (!Number.isFinite(h)) return "不明";
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
+function getPostHour(post) {
+  const raw = String(post?.time || "00:00");
+  const hour = Number(raw.split(":")[0]);
+  return Number.isFinite(hour) && hour >= 0 && hour <= 23 ? hour : 0;
+}
+
+function getTimeBand(hour) {
+  const h = Number(hour);
+  if (h >= 5 && h <= 10) return "朝";
+  if (h >= 11 && h <= 14) return "昼";
+  if (h >= 15 && h <= 18) return "夕方";
+  if (h >= 19 && h <= 23) return "夜";
+  return "深夜";
+}
+
+function analyzeGoldenTime(posts, profile = DEFAULT_PROFILE) {
+  if (!posts.length) {
+    return {
+      bestHour: null,
+      bestLabel: "データ待ち",
+      bestBand: "未判定",
+      confidence: 0,
+      insight: "投稿データを追加すると、ふくさんだけの勝ち時間を判定します。",
+      hourly: [],
+      bands: [],
+      ranking: [],
+    };
+  }
+
+  const byHour = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: hourLabel(hour),
+    band: getTimeBand(hour),
+    count: 0,
+    views: 0,
+    egTotal: 0,
+    funnelTotal: 0,
+    clicks: 0,
+    sales: 0,
+    replies: 0,
+    fc: 0,
+    score: 0,
+    confidence: 0,
+  }));
+
+  posts.forEach((post) => {
+    const hour = getPostHour(post);
+    const bucket = byHour[hour];
+    bucket.count += 1;
+    bucket.views += toNumber(post.views);
+    bucket.egTotal += engagementRate(post);
+    bucket.funnelTotal += funnelScore(post, profile);
+    bucket.clicks += toNumber(post.noteClicks);
+    bucket.sales += toNumber(post.noteSales);
+    bucket.replies += toNumber(post.replies);
+    bucket.fc += toNumber(post.fc);
+  });
+
+  const hourly = byHour.map((bucket) => {
+    const avgEg = bucket.count ? Number((bucket.egTotal / bucket.count).toFixed(2)) : 0;
+    const avgFunnel = bucket.count ? Math.round(bucket.funnelTotal / bucket.count) : 0;
+    const clickRateValue = bucket.views ? Number(((bucket.clicks / bucket.views) * 100).toFixed(2)) : 0;
+    const salesPerPost = bucket.count ? Number((bucket.sales / bucket.count).toFixed(2)) : 0;
+    const replyPerPost = bucket.count ? Number((bucket.replies / bucket.count).toFixed(1)) : 0;
+    const fcPerPost = bucket.count ? Number((bucket.fc / bucket.count).toFixed(1)) : 0;
+    const confidence = bucket.count >= 5 ? 100 : bucket.count >= 3 ? 72 : bucket.count === 2 ? 48 : bucket.count === 1 ? 26 : 0;
+    const score = bucket.count ? Math.round(
+      avgEg * 8 +
+      avgFunnel * 0.55 +
+      clickRateValue * 18 +
+      salesPerPost * 18 +
+      replyPerPost * 0.18 +
+      fcPerPost * 0.12 +
+      Math.min(bucket.count, 5) * 4
+    ) : 0;
+    return { ...bucket, avgEg, avgFunnel, clickRateValue, salesPerPost, replyPerPost, fcPerPost, confidence, score };
+  });
+
+  const activeHours = hourly.filter((item) => item.count > 0).sort((a, b) => b.score - a.score);
+  const best = activeHours[0];
+
+  const bandMap = {};
+  hourly.filter((item) => item.count > 0).forEach((item) => {
+    if (!bandMap[item.band]) bandMap[item.band] = { band: item.band, count: 0, scoreTotal: 0, egTotal: 0, funnelTotal: 0, clicks: 0, sales: 0 };
+    bandMap[item.band].count += item.count;
+    bandMap[item.band].scoreTotal += item.score;
+    bandMap[item.band].egTotal += item.avgEg * item.count;
+    bandMap[item.band].funnelTotal += item.avgFunnel * item.count;
+    bandMap[item.band].clicks += item.clicks;
+    bandMap[item.band].sales += item.sales;
+  });
+
+  const bands = Object.values(bandMap).map((item) => ({
+    ...item,
+    avgScore: item.count ? Math.round(item.scoreTotal / Math.max(1, Object.keys(bandMap).length)) : 0,
+    avgEg: item.count ? Number((item.egTotal / item.count).toFixed(2)) : 0,
+    avgFunnel: item.count ? Math.round(item.funnelTotal / item.count) : 0,
+  })).sort((a, b) => b.avgScore - a.avgScore);
+
+  if (!best) {
+    return {
+      bestHour: null,
+      bestLabel: "データ待ち",
+      bestBand: "未判定",
+      confidence: 0,
+      insight: "時間付きの投稿データがまだありません。投稿時間を入れると判定できます。",
+      hourly,
+      bands,
+      ranking: [],
+    };
+  }
+
+  const confidenceText = best.confidence >= 72 ? "かなり信頼できます" : best.confidence >= 48 ? "もう少し投稿数がほしいです" : "仮説段階です";
+  const insight = `${best.label}台が今のところ最有力です。平均EG率${best.avgEg}%、平均導線${best.avgFunnel}点、noteクリック${best.clicks}件、購入${best.sales}件。信頼度は${best.confidence}%で、${confidenceText}。`;
+
+  return {
+    bestHour: best.hour,
+    bestLabel: best.label,
+    bestBand: best.band,
+    confidence: best.confidence,
+    insight,
+    hourly,
+    bands,
+    ranking: activeHours.slice(0, 5),
+  };
+}
+
+function getRoleCounts(posts) {
+  const counts = POST_ROLES.reduce((acc, role) => ({ ...acc, [role]: 0 }), {});
+  posts.forEach((post) => {
+    counts[post.role] = (counts[post.role] || 0) + 1;
+  });
+  return counts;
+}
+
+function recommendNextPost(posts, profile = DEFAULT_PROFILE) {
+  if (!posts.length) return { role: "共感", hook: "共感型", psyche: "怖い", reason: "まだデータがないので、まず読者の痛みを止める共感投稿から始めます。", theme: "夫のただいまが怖い" };
+  const counts = getRoleCounts(posts);
+  const totalSales = posts.reduce((sum, p) => sum + toNumber(p.noteSales), 0);
+  const recent = [...posts].sort((a, b) => postDateTime(b) - postDateTime(a)).slice(0, 5);
+  const recentRoles = getRoleCounts(recent);
+  const best = [...posts].sort((a, b) => funnelScore(b, profile) - funnelScore(a, profile))[0];
+  if ((counts["共感"] || 0) >= posts.length * 0.45 && (counts["信頼"] || 0) < posts.length * 0.25) return { role: "信頼", hook: "数字型", psyche: best?.readerPsyche || "お金が不安", reason: "共感投稿が多めです。読者が保存できる実務投稿を挟むと、note購入前の納得が作れます。", theme: "離婚前に確認する4つのお金" };
+  if ((counts["導線"] || 0) < Math.max(1, Math.floor(posts.length * 0.18))) return { role: "導線", hook: "ストーリー型", psyche: best?.readerPsyche || "怖い", reason: "導線投稿が少なめです。売り込まず、脈絡を作ってプロフィール/noteへ橋を置くタイミングです。", theme: best?.readerPsyche === "調停が怖い" ? "調停前に準備してよかったこと" : "誰にも気づかれず始める離婚準備" };
+  if (totalSales > 0 && (recentRoles["レビュー"] || 0) === 0) return { role: "レビュー", hook: "ストーリー型", psyche: "今すぐ知りたい", reason: "noteが売れています。売れた事実・感謝・追記予告を出すと、人気感と安心感が積み上がります。", theme: "また1歩、動き出してくださった方がいました" };
+  return { role: "診断", hook: "診断型", psyche: best?.readerPsyche || "怖い", reason: "次は返信・自己開示を生む診断型が合います。読者に『これ私だ』と思わせてから導線へつなげます。", theme: "それ、モラハラかもしれないチェック" };
+}
+
+function analyzeSalesWindows(posts, profile = DEFAULT_PROFILE) {
+  const sorted = [...posts].sort((a, b) => postDateTime(a) - postDateTime(b));
+  return sorted.filter((post) => toNumber(post.noteSales) > 0).map((salePost) => {
+    const before = sorted.filter((post) => post.id !== salePost.id && daysBetween(post, salePost) >= 0 && daysBetween(post, salePost) <= 3);
+    const after = sorted.filter((post) => post.id !== salePost.id && daysBetween(salePost, post) >= 0 && daysBetween(salePost, post) <= 1.5);
+    const beforeRoles = getRoleCounts(before);
+    const beforeScore = before.length ? Math.round(before.reduce((sum, p) => sum + funnelScore(p, profile), 0) / before.length) : 0;
+    const dominantRole = Object.entries(beforeRoles).sort((a, b) => b[1] - a[1])[0]?.[0] || "不明";
+    return { salePost, before, after, beforeScore, insight: before.length ? `販売前3日間は「${dominantRole}」が多め。平均導線スコアは${beforeScore}点です。` : "販売前3日間の投稿が少ないため、売れた前の流れをまだ判定しきれません。" };
+  });
+}
+
+function makeDraftByRecommendation(rec) {
+  if (rec.role === "信頼") return ["離婚前に見ておくべきお金は、まず4つ。", "", "・毎月の生活費", "・子どもの学費", "・今ある貯金", "・養育費や年金分割", "", "全部完璧じゃなくていい。", "でも、ここが見えるだけで『怖い』が少しだけ『考えられる』に変わります。"].join(NL);
+  if (rec.role === "導線") return [`最近、${rec.theme}について同じ悩みをよく見ます。`, "", "私も最初は、何から始めたらいいか分かりませんでした。", "でも、調停前に準備しておいてよかったことがあります。", "", "必要であれば、プロフィールのnoteにまとめています。"].join(NL);
+  if (rec.role === "レビュー") return ["また1歩、動き出してくださった方がいました。", "", "私のnoteを選んでくれてありがとうございます。", "", "離婚するかどうかより先に、まず自分と子どもを守る準備を知ってほしい。", "週末に、調停前チェックも追記します。"].join(NL);
+  if (rec.role === "診断") return ["これ、当てはまる？", "", "・夫の帰宅音で体が固まる", "・生活費の話をすると責められる", "・子どもの前では笑ってしまう", "・夜にこっそり離婚を検索する", "", "ひとつでもあるなら、今すぐ離婚じゃなくていい。まず準備からで大丈夫。"].join(NL);
+  return [`${rec.theme}って、経験した人にしかわからない怖さがある。`, "", "でもね、今すぐ離婚を決めなくていい。", "まずは、自分と子どもを守る材料を集めるだけでいい。"].join(NL);
+}
+
+function buildThreadsAuthUrl(config) {
+  const clientId = String(config?.clientId || "").trim();
+  const redirectUri = String(config?.redirectUri || "").trim();
+  const scopes = Array.isArray(config?.scopes) && config.scopes.length ? config.scopes : ["threads_basic"];
+  if (!clientId || !redirectUri) return "";
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    scope: scopes.join(","),
+    response_type: "code",
+  });
+  return `https://www.threads.net/oauth/authorize?${params.toString()}`;
+}
+
+function getThreadsAuthDiagnostics(config) {
+  const clientId = String(config?.clientId || "").trim();
+  const redirectUri = String(config?.redirectUri || "").trim();
+  const scopes = Array.isArray(config?.scopes) ? config.scopes : [];
+  const issues = [];
+  if (!clientId) issues.push("Threads App ID / Client ID が空です。認可URLに client_id が入りません。");
+  if (clientId && !/^[0-9]+$/.test(clientId)) issues.push("Client ID は通常、数字だけのIDです。App SecretやAccess Tokenを入れていないか確認してください。");
+  if (!redirectUri) issues.push("OAuthリダイレクトURLが空です。");
+  if (redirectUri && redirectUri.includes("your-domain.com")) issues.push("OAuthリダイレクトURLが仮URLのままです。実際に公開しているURLに変更してください。");
+  if (redirectUri && !redirectUri.startsWith("https://")) issues.push("OAuthリダイレクトURLは本番ではHTTPSが必要です。");
+  if (!scopes.includes("threads_basic")) issues.push("threads_basic は基本的に必要です。チェックを入れてください。");
+  return issues;
+}
+
+function guessCredentialType(input) {
+  const value = String(input || "").trim();
+  const lower = value.toLowerCase();
+  if (!value) {
+    return {
+      title: "まだ未入力",
+      safety: "safe",
+      message: "キーの中身ではなく、ラベル名だけ入れるのがおすすめです。例：App ID、App Secret、Access Token など。",
+    };
+  }
+  if (lower.includes("secret") || lower.includes("app secret") || lower.includes("client secret")) {
+    return {
+      title: "App Secret / Client Secret の可能性が高い",
+      safety: "danger",
+      message: "これはReact画面に入れないでください。バックエンドだけで使う秘密鍵です。",
+    };
+  }
+  if (lower.includes("access token") || lower === "token" || lower.includes("user token") || lower.includes("long-lived") || lower.includes("short-lived")) {
+    return {
+      title: "Access Token の可能性が高い",
+      safety: "danger",
+      message: "投稿取得に使う鍵ですが、React画面やチャットには貼らないでください。バックエンド保存が安全です。",
+    };
+  }
+  if (lower.includes("client token")) {
+    return {
+      title: "Client Token の可能性が高い",
+      safety: "warn",
+      message: "名前は似ていますが、今回のThreads OAuthのclient_id欄に入れるものではない可能性が高いです。",
+    };
+  }
+  if (lower.includes("app id") || lower.includes("client id") || lower.includes("アプリid") || lower.includes("アプリ id")) {
+    return {
+      title: "App ID / Client ID の可能性が高い",
+      safety: "safe",
+      message: "これはThreads App ID / Client ID欄に入れる候補です。数字だけのIDならかなり可能性が高いです。",
+    };
+  }
+  if (/^[0-9]{6,}$/.test(value)) {
+    return {
+      title: "数字だけなのでApp ID / Client ID候補",
+      safety: "safe",
+      message: "Threads App ID / Client ID欄に入れる候補です。ただしMetaのThreadsユースケース側のIDか確認してください。",
+    };
+  }
+  if (/^ea[a-z0-9]/i.test(value) || value.length > 40) {
+    return {
+      title: "トークンまたは秘密鍵の可能性が高い",
+      safety: "danger",
+      message: "中身っぽい文字列です。貼らずに削除してください。使うならバックエンド側で扱います。",
+    };
+  }
+  if (value.startsWith("https://")) {
+    return {
+      title: "Redirect URI / Callback URL の可能性が高い",
+      safety: "safe",
+      message: "Meta側の有効なOAuthリダイレクトURIに完全一致で登録するURLです。",
+    };
+  }
+  return {
+    title: "判定が微妙",
+    safety: "warn",
+    message: "ラベル名だけでは判定しきれません。Meta画面で表示されている項目名を確認してください。中身のキーは貼らないでください。",
+  };
+}
+
+function normalizeThreadsApiPost(item) {
+  const text = item?.text || item?.caption || item?.body || "";
+  const created = item?.timestamp || item?.created_time || item?.date || new Date().toISOString();
+  const d = new Date(created);
+  const date = Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+  const time = Number.isNaN(d.getTime()) ? "21:00" : d.toISOString().slice(11, 16);
+  const insights = item?.insights || item || {};
+  const auto = classifyPost(text);
+  return normalizePost({
+    text,
+    date,
+    time,
+    likes: insights.likes || insights.like_count || item?.like_count || 0,
+    replies: insights.replies || insights.reply_count || item?.reply_count || 0,
+    reposts: insights.reposts || insights.repost_count || item?.repost_count || 0,
+    views: insights.views || insights.view_count || item?.view_count || 0,
+    fc: 0,
+    noteClicks: 0,
+    noteSales: 0,
+    hookType: auto.hookType,
+    role: auto.role,
+    readerPsyche: auto.readerPsyche,
+  });
+}
+
+function runTests() {
+  const testPost = { likes: 10, replies: 2, reposts: 3, views: 1000, noteClicks: 10, noteSales: 1 };
+  const zeroViewPost = { likes: 999, replies: 999, reposts: 999, views: 0 };
+  const strongFunnelPost = { text: "夫のただいまが怖い人へ。必要であればプロフィールのnoteに準備をまとめています。", likes: 740, replies: 166, reposts: 112, views: 42000, noteClicks: 56, noteSales: 3, role: "導線", readerPsyche: "怖い" };
+  const csv = ["text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales", "\"夫のただいまが怖い\",2026-05-25,21:00,10,2,1,1000,1,3,0"].join(NL);
+  const parsed = parseCsv(csv);
+  const auto = classifyPost("離婚前に知らないと損する4つのお金");
+  const authUrl = buildThreadsAuthUrl({ clientId: "123", redirectUri: "https://example.com/callback", scopes: ["threads_basic", "threads_manage_insights"] });
+  const apiPost = normalizeThreadsApiPost({ text: "夫のただいまが怖い", timestamp: "2026-05-25T12:00:00Z", insights: { views: 1000, likes: 20, replies: 3, reposts: 2 } });
+  const golden = analyzeGoldenTime([
+    { text: "朝投稿", time: "07:00", likes: 100, replies: 20, reposts: 10, views: 3000, noteClicks: 8, noteSales: 1, role: "導線", readerPsyche: "怖い" },
+    { text: "夜投稿", time: "22:00", likes: 10, replies: 1, reposts: 1, views: 3000, noteClicks: 0, noteSales: 0, role: "共感", readerPsyche: "怖い" },
+  ], DEFAULT_PROFILE);
+  return [
+    { name: "EG率計算", passed: engagementRate(testPost) === 2.2, expected: "2.2", actual: String(engagementRate(testPost)) },
+    { name: "閲覧数0ならEG率0", passed: engagementRate(zeroViewPost) === 0, expected: "0", actual: String(engagementRate(zeroViewPost)) },
+    { name: "noteクリック率計算", passed: clickRate(testPost) === 1, expected: "1", actual: String(clickRate(testPost)) },
+    { name: "note購入率計算", passed: salesRate(testPost) === 10, expected: "10", actual: String(salesRate(testPost)) },
+    { name: "導線スコアが0〜100に収まる", passed: funnelScore(strongFunnelPost) >= 0 && funnelScore(strongFunnelPost) <= 100, expected: "0〜100", actual: String(funnelScore(strongFunnelPost)) },
+    { name: "CSVを1件読み込める", passed: parsed.length === 1 && parsed[0].text === "夫のただいまが怖い", expected: "1件", actual: `${parsed.length}件` },
+    { name: "本文から自動分類できる", passed: auto.hookType === "情報緊急型" && auto.readerPsyche === "お金が不安", expected: "情報緊急型/お金が不安", actual: `${auto.hookType}/${auto.readerPsyche}` },
+    { name: "ふく式ナレッジが読み込まれている", passed: FUKU_KNOWLEDGE.noteBridge.length >= 5, expected: "5以上", actual: String(FUKU_KNOWLEDGE.noteBridge.length) },
+    { name: "プロフィール初期値の改行文字が安全", passed: DEFAULT_PROFILE.avoidTone.includes(NL) && DEFAULT_PROFILE.winningPatterns.includes(NL), expected: "改行を含む文字列", actual: `${DEFAULT_PROFILE.avoidTone.includes(NL)}/${DEFAULT_PROFILE.winningPatterns.includes(NL)}` },
+    { name: "プロフィール一致スコアが0〜100に収まる", passed: profileAlignmentScore(strongFunnelPost) >= 0 && profileAlignmentScore(strongFunnelPost) <= 100, expected: "0〜100", actual: String(profileAlignmentScore(strongFunnelPost)) },
+    { name: "CSV出力にヘッダーが含まれる", passed: postsToCsv(SAMPLE_POSTS).startsWith(CSV_COLUMNS.join(",")), expected: "ヘッダーあり", actual: postsToCsv(SAMPLE_POSTS).slice(0, 20) },
+    { name: "Threads OAuth URLを生成できる", passed: authUrl.includes("www.threads.net/oauth/authorize") && authUrl.includes("threads_basic"), expected: "OAuth URL", actual: authUrl.slice(0, 45) },
+    { name: "Threads API風データを投稿形式に変換できる", passed: apiPost.text === "夫のただいまが怖い" && apiPost.views === 1000 && apiPost.hookType === "共感型", expected: "投稿形式", actual: `${apiPost.text}/${apiPost.views}/${apiPost.hookType}` },
+    { name: "私だけのゴールデンタイムを判定できる", passed: golden.bestLabel === "07:00" && golden.ranking.length >= 1, expected: "07:00", actual: golden.bestLabel },
   ];
-  var el=document.getElementById("draftOut"); if(el) el.innerHTML=out.map(function(x){return '<div class="copy">'+esc(x)+'</div>'}).join("");
 }
-function renderKnowledge(){
-  document.getElementById("knowledge").innerHTML=
-  '<div class="card"><h2>🧠 ふくさん専用ナレッジ</h2>'+
-  '<div class="box"><b>立ち位置</b><br>'+esc(KNOWLEDGE.position)+'</div>'+
-  '<div class="box"><b>ターゲット</b><br>'+esc(KNOWLEDGE.target)+'</div>'+
-  '<div class="box"><b>ひとりに絞ると</b><br>'+esc(KNOWLEDGE.one)+'</div>'+
-  '<div class="box"><b>基本メッセージ</b><br>'+esc(KNOWLEDGE.message)+'</div>'+
-  '<div class="box"><b>Threads/noteの役割</b><br>'+esc(KNOWLEDGE.rule)+'</div>'+
-  '<div class="box"><b>分析ルール</b><br>'+esc(KNOWLEDGE.funnel)+'</div></div>'+
-  '<div class="grid2"><div class="card"><h2>強いフック</h2>'+KNOWLEDGE.hooks.map(function(x){return '<div class="post">'+esc(x)+'</div>'}).join("")+'</div>'+
-  '<div class="card"><h2>読者の痛み</h2>'+KNOWLEDGE.pain.map(function(x){return '<div class="post">'+esc(x)+'</div>'}).join("")+'</div></div>'+
-  '<div class="grid2"><div class="card"><h2>note導線フレーズ</h2>'+KNOWLEDGE.bridge.map(function(x){return '<div class="post">'+esc(x)+'</div>'}).join("")+'</div>'+
-  '<div class="card"><h2>避けること</h2>'+KNOWLEDGE.avoid.map(function(x){return '<div class="post">'+esc(x)+'</div>'}).join("")+'</div></div>';
+
+function Badge({ children }) {
+  return <span className="badge">{children}</span>;
 }
-function renderFunnel(){
-  document.getElementById("funnel").innerHTML=
-  '<div class="card"><h2>🪜 ふく式 導線設計</h2><div class="box"><b>基本</b><br>Threadsで全部売らない。Threadsでは「問題提起・共感・自分ごと化」まで。noteで丁寧に説得する。</div>'+
-  '<div class="box"><b>流れ</b><br>共感投稿 → 保存される実務投稿 → 脈絡のある導線投稿 → プロフィール → note / マガジン</div>'+
-  '<div class="box"><b>告知の脈絡</b><br>「最近同じ相談が多いので」「この前の投稿に反応が多かったので」「ひとりで抱えてる人が多いと感じたので」から始める。</div></div>'+
-  '<div class="grid3">'+KNOWLEDGE.roles.map(function(r){return '<div class="card"><h3>'+esc(r[0])+'</h3><p class="mini">'+esc(r[1])+'</p></div>'}).join("")+'</div>';
+
+function Card({ children, className = "" }) {
+  return <div className={`card ${className}`}>{children}</div>;
 }
-function renderAll(){renderDashboard();renderInput();renderNext();renderDrafts();renderKnowledge();renderFunnel()}
-renderAll();
-</script>
-</body>
-</html>
+
+function StatCard({ label, value, note, icon = "✨", tone = "pink" }) {
+  return <Card className={`statCard tone-${tone}`}><div className="statIcon">{icon}</div><p className="statLabel">{label}</p><p className="statValue">{value}</p>{note ? <p className="note">{note}</p> : null}</Card>;
+}
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return <div className="tooltip"><strong>{label}</strong>{payload.map((item) => <div key={item.dataKey}>{item.name || item.dataKey}: {item.value}</div>)}</div>;
+}
+
+function ScoreBar({ score }) {
+  return <div className="scoreWrap"><div className="scoreFill" style={{ width: `${clamp(score, 0, 100)}%` }} /></div>;
+}
+
+export default function App() {
+  const [posts, setPosts] = useState(SAMPLE_POSTS);
+  const [tab, setTab] = useState("dashboard");
+  const [showTests, setShowTests] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvMessage, setCsvMessage] = useState("");
+  const [threadsConfig, setThreadsConfig] = useState({
+    clientId: "",
+    redirectUri: "https://your-domain.com/threads/callback",
+    backendBaseUrl: "https://your-domain.com/api/threads",
+    scopes: ["threads_basic", "threads_manage_insights"],
+  });
+  const [threadsJson, setThreadsJson] = useState("");
+  const [threadsMessage, setThreadsMessage] = useState("");
+  const [threadsSyncStatus, setThreadsSyncStatus] = useState("idle");
+  const [credentialHint, setCredentialHint] = useState("");
+  const [autoClassify, setAutoClassify] = useState(true);
+  const [form, setForm] = useState({ text: "", date: new Date().toISOString().slice(0, 10), time: "21:00", likes: "0", replies: "0", reposts: "0", views: "0", fc: "0", noteClicks: "0", noteSales: "0", hookType: "共感型", role: "共感", readerPsyche: "怖い" });
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [draftTheme, setDraftTheme] = useState("夫のただいまが怖い");
+  const threadsAuthUrl = buildThreadsAuthUrl(threadsConfig);
+  const threadsAuthDiagnostics = getThreadsAuthDiagnostics(threadsConfig);
+  const credentialGuess = guessCredentialType(credentialHint);
+
+  const stats = useMemo(() => {
+    const funnelSorted = [...posts].sort((a, b) => funnelScore(b, profile) - funnelScore(a, profile));
+    const avgEg = posts.length ? (posts.reduce((sum, p) => sum + engagementRate(p), 0) / posts.length).toFixed(2) : "0.00";
+    const avgFunnel = posts.length ? Math.round(posts.reduce((sum, p) => sum + funnelScore(p, profile), 0) / posts.length) : 0;
+    const totalClicks = posts.reduce((sum, p) => sum + toNumber(p.noteClicks), 0);
+    const totalSales = posts.reduce((sum, p) => sum + toNumber(p.noteSales), 0);
+    const timeline = [...posts].sort((a, b) => String(a.date).localeCompare(String(b.date))).map((p) => ({ date: String(p.date || "").slice(5), eg: engagementRate(p), funnel: funnelScore(p, profile), sales: toNumber(p.noteSales) }));
+    const hookData = HOOK_TYPES.map((hook) => {
+      const group = posts.filter((p) => p.hookType === hook);
+      return { hook, funnel: group.length ? Math.round(group.reduce((sum, p) => sum + funnelScore(p, profile), 0) / group.length) : 0, count: group.length };
+    }).filter((d) => d.count > 0);
+    const roleData = POST_ROLES.map((role) => {
+      const group = posts.filter((p) => p.role === role);
+      return { role, funnel: group.length ? Math.round(group.reduce((sum, p) => sum + funnelScore(p, profile), 0) / group.length) : 0, count: group.length };
+    }).filter((d) => d.count > 0);
+    const bestHook = [...hookData].sort((a, b) => b.funnel - a.funnel)[0];
+    const bestRole = [...roleData].sort((a, b) => b.funnel - a.funnel)[0];
+    const nextRec = recommendNextPost(posts, profile);
+    const saleWindows = analyzeSalesWindows(posts, profile);
+    const goldenTime = analyzeGoldenTime(posts, profile);
+    return { funnelSorted, avgEg, avgFunnel, totalClicks, totalSales, timeline, hookData, roleData, bestHook, bestRole, nextRec, saleWindows, goldenTime }; 
+  }, [posts, profile]);
+
+  const tests = useMemo(() => runTests(), []);
+
+  function updateText(value) {
+    const auto = classifyPost(value);
+    setForm((prev) => autoClassify ? { ...prev, text: value, hookType: auto.hookType, role: auto.role, readerPsyche: auto.readerPsyche } : { ...prev, text: value });
+  }
+
+  function addPost() {
+    if (!form.text.trim()) return;
+    const auto = classifyPost(form.text);
+    const next = normalizePost({ ...form, hookType: autoClassify ? auto.hookType : form.hookType, role: autoClassify ? auto.role : form.role, readerPsyche: autoClassify ? auto.readerPsyche : form.readerPsyche });
+    setPosts((prev) => [next, ...prev]);
+    setForm((prev) => ({ ...prev, text: "", likes: "0", replies: "0", reposts: "0", views: "0", fc: "0", noteClicks: "0", noteSales: "0" }));
+  }
+
+  function importCsv() {
+    const parsed = parseCsv(csvText);
+    if (!parsed.length) {
+      setCsvMessage("CSVを読み込めませんでした。ヘッダー行と1件以上のデータを確認してください。");
+      return;
+    }
+    setPosts((prev) => [...parsed, ...prev]);
+    setCsvMessage(`${parsed.length}件を取り込みました。本文からフック・役割・読者心理も自動判定しています。`);
+  }
+
+  function loadSampleCsv() {
+    setCsvText(["text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales", "\"夫のただいまが怖い人へ。帰宅音で体が固まるなら、まず記録からで大丈夫。\",2026-05-25,21:00,420,56,38,21000,31,22,1", "\"離婚前に知らないと損する4つのお金。生活費、学費、貯金、養育費。\",2026-05-26,12:00,280,24,61,16000,17,34,2"].join(NL));
+  }
+
+  function exportCsv() {
+    setCsvText(postsToCsv(posts));
+    setCsvMessage("現在の投稿データをCSV欄に出力しました。コピーして保存できます。");
+  }
+
+  function toggleThreadScope(scope) {
+    setThreadsConfig((prev) => {
+      const exists = prev.scopes.includes(scope);
+      return { ...prev, scopes: exists ? prev.scopes.filter((item) => item !== scope) : [...prev.scopes, scope] };
+    });
+  }
+
+  function importThreadsJson() {
+    try {
+      const raw = JSON.parse(threadsJson);
+      const items = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const converted = items.map(normalizeThreadsApiPost).filter((post) => post.text);
+      if (!converted.length) {
+        setThreadsMessage("取り込めるThreads投稿データが見つかりませんでした。配列、または { data: [...] } 形式で貼ってください。");
+        return;
+      }
+      setPosts((prev) => [...converted, ...prev]);
+      setThreadsMessage(`${converted.length}件のThreads風JSONを取り込みました。noteクリック・購入数はあとで手入力してください。`);
+    } catch (error) {
+      setThreadsMessage("JSONの形式を確認してください。カンマ抜けや引用符の崩れがあるかもしれません。");
+    }
+  }
+
+  function loadThreadsSampleJson() {
+    const sample = {
+      data: [
+        { text: "夫のただいまが怖い人へ。まず記録からで大丈夫。", timestamp: "2026-05-25T12:00:00Z", insights: { views: 18000, likes: 420, replies: 56, reposts: 38 } },
+        { text: "離婚前に知らないと損する4つのお金。生活費、学費、貯金、養育費。", timestamp: "2026-05-26T03:00:00Z", insights: { views: 16000, likes: 280, replies: 24, reposts: 61 } },
+      ],
+    };
+    setThreadsJson(JSON.stringify(sample, null, 2));
+  }
+
+  async function syncThreadsFromBackend() {
+    const baseUrl = String(threadsConfig.backendBaseUrl || "").trim().replace(/\/$/, "");
+    if (!baseUrl || baseUrl.includes("your-domain.com")) {
+      setThreadsMessage("バックエンドAPI URLが仮URLのままです。VercelやRenderなどに置いたAPI URLを入れてください。");
+      return;
+    }
+    setThreadsSyncStatus("loading");
+    setThreadsMessage("Threads投稿をバックエンドから取得中です…");
+    try {
+      const response = await fetch(`${baseUrl}/posts`, { method: "GET" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const raw = await response.json();
+      const items = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const converted = items.map(normalizeThreadsApiPost).filter((post) => post.text);
+      if (!converted.length) {
+        setThreadsSyncStatus("error");
+        setThreadsMessage("バックエンドから返ってきたデータに、取り込めるThreads投稿がありませんでした。");
+        return;
+      }
+      setPosts((prev) => [...converted, ...prev]);
+      setThreadsJson(JSON.stringify(raw, null, 2));
+      setThreadsSyncStatus("success");
+      setThreadsMessage(`${converted.length}件をThreadsバックエンドから同期しました。noteクリック・購入数は必要に応じて手入力してください。`);
+    } catch (error) {
+      setThreadsSyncStatus("error");
+      setThreadsMessage(`同期に失敗しました。バックエンドURL、CORS、トークン期限、権限を確認してください。${error?.message ? ` (${error.message})` : ""}`);
+    }
+  }
+
+  function generateFukuAdvice() {
+    const top = stats.funnelSorted[0];
+    const weak = stats.funnelSorted[stats.funnelSorted.length - 1];
+    if (!top) return ["投稿データを追加すると、ふく式ナレッジに沿った分析が表示されます。"];
+    return [
+      `導線として一番強い投稿は「${top.text.slice(0, 32)}…」。導線スコアは${funnelScore(top, profile)}点です。`,
+      `今の勝ち筋は「${stats.bestHook?.hook || "共感型"}」×「${stats.bestRole?.role || "導線"}」。共感だけで終わらせず、準備・note・プロフィールへの橋を置く投稿が強いです。`,
+      weak ? `弱い投稿は「${weak.text.slice(0, 32)}…」。読者の今の痛みか次の一歩が薄い可能性があります。` : "弱い投稿の判定には、もう少しデータが必要です。",
+      `次に出すべき投稿は「${stats.nextRec.hook}」×「${stats.nextRec.role}」。理由：${stats.nextRec.reason}`,
+      `忘れない軸：${profile.mainMessage}`,
+    ];
+  }
+
+  function generateDrafts() {
+    const theme = draftTheme.trim() || "離婚前の準備";
+    return [
+      ["【共感型】", `${theme}って、経験した人にしかわからない怖さがある。`, "", "でもね、今すぐ離婚を決めなくていい。", "まずは、自分と子どもを守る材料を集めるだけでいい。"].join(NL),
+      ["【情報緊急型】", "離婚前に知らないと損する人が多いです。", "", `${theme}で苦しい時ほど、感情で動く前に`, "・お金", "・証拠", "・住まい", "・子どもの生活", "この4つだけ先に確認して。"].join(NL),
+      ["【導線型】", `最近、${theme}について同じ相談が増えています。`, "", "だから、私が調停前にやってよかった準備をまとめました。", "必要であれば、プロフィールのnoteから見てみてください。"].join(NL),
+      ["【診断型】", "これ、当てはまる？", "", "・夫の機嫌で予定が変わる", "・帰宅音で体が固まる", "・生活費の話をすると責められる", "・離婚したいのにお金が怖い", "", "ひとつでもあるなら、まず準備からで大丈夫。"].join(NL),
+    ];
+  }
+
+  const tabButtonClass = (name) => `tabButton ${tab === name ? "active" : ""}`;
+
+  return (
+    <div className="appShell">
+      <style>{`
+        :root {
+          --bg: #fbf7f4;
+          --card: rgba(255, 253, 250, 0.86);
+          --line: rgba(222, 207, 198, .72);
+          --line2: rgba(216, 199, 193, .82);
+          --text: #4f4646;
+          --text2: #8a7b78;
+          --muted: #b8aaa6;
+          --pink: #c46a91;
+          --purple: #8f73b8;
+          --orange: #c98251;
+          --green: #6a9b82;
+          --blue: #6f8ead;
+          --grad: linear-gradient(135deg, #c56c93 0%, #9b79b8 58%, #7c6fa8 100%);
+          --shadow: 0 24px 70px rgba(122, 91, 83, .10);
+          --shadow2: 0 14px 38px rgba(128, 98, 91, .08);
+          --radius: 28px;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); }
+        .appShell {
+          min-height: 100vh;
+          color: var(--text);
+          font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+          background:
+            radial-gradient(circle at 8% 0%, rgba(255, 243, 235, .78), transparent 30%),
+            radial-gradient(circle at 88% 8%, rgba(238, 229, 247, .74), transparent 31%),
+            radial-gradient(circle at 50% 100%, rgba(250, 239, 230, .78), transparent 38%),
+            linear-gradient(135deg, #fbf7f4 0%, #faf6f8 48%, #fff9f3 100%);
+        }
+        .header {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          border-bottom: 1px solid rgba(222, 207, 198, .62);
+          background: rgba(255, 252, 248, .72);
+          backdrop-filter: blur(22px) saturate(1.08);
+        }
+        .headerInner {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 18px 22px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+        }
+        .title {
+          margin: 0;
+          font-size: 27px;
+          font-weight: 860;
+          letter-spacing: -0.045em;
+          line-height: 1.05;
+          color: #7b5d74;
+        }
+        .subtitle {
+          margin: 7px 0 0;
+          color: #9b8c88;
+          font-size: 12px;
+          font-weight: 620;
+          letter-spacing: .03em;
+        }
+        .brandMark {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          margin-right: 8px;
+          border-radius: 13px;
+          background: linear-gradient(135deg, #fff, #f8eee8);
+          box-shadow: 0 12px 28px rgba(122, 91, 83, .10);
+          vertical-align: -4px;
+        }
+        .tabs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+          padding: 8px;
+          border: 1px solid rgba(222, 207, 198, .7);
+          border-radius: 999px;
+          background: rgba(255, 253, 250, .64);
+          box-shadow: 0 16px 42px rgba(122, 91, 83, .07);
+        }
+        .tabButton, .primaryButton, .ghostButton, .dangerButton {
+          border: 0;
+          border-radius: 999px;
+          padding: 11px 16px;
+          font-weight: 760;
+          cursor: pointer;
+          font-family: inherit;
+          transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
+          white-space: nowrap;
+        }
+        .tabButton {
+          background: transparent;
+          color: #8c7d78;
+          border: 1px solid transparent;
+        }
+        .tabButton:hover { background: rgba(255,255,255,.72); color: var(--text); transform: translateY(-1px); }
+        .tabButton.active, .primaryButton {
+          color: #fff;
+          background: var(--grad);
+          box-shadow: 0 14px 26px rgba(122, 91, 83, .16);
+        }
+        .primaryButton:hover, .ghostButton:hover, .dangerButton:hover { transform: translateY(-1px); }
+        .primaryButton:disabled { opacity: .58; cursor: not-allowed; transform: none; }
+        .ghostButton {
+          background: rgba(248, 242, 238, .92);
+          color: #7d6879;
+          border: 1px solid rgba(222, 207, 198, .82);
+        }
+        .dangerButton {
+          background: rgba(255, 243, 245, .84);
+          color: #b15f72;
+          border: 1px solid rgba(231, 197, 204, .72);
+        }
+        .main {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 28px 22px 60px;
+        }
+        .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+        .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        .grid3 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+        .inputGrid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 20px; align-items: start; }
+        .card {
+          position: relative;
+          overflow: hidden;
+          background: var(--card);
+          border: 1px solid var(--line);
+          border-radius: var(--radius);
+          padding: 24px;
+          box-shadow: var(--shadow2);
+          backdrop-filter: blur(18px) saturate(1.04);
+        }
+        .card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(135deg, rgba(255,255,255,.54), rgba(255,255,255,0) 42%);
+        }
+        .card > * { position: relative; z-index: 1; }
+        .statCard {
+          min-height: 132px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          border-radius: 26px;
+          background: rgba(255, 253, 250, .72);
+        }
+        .statIcon {
+          width: 38px;
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(250, 241, 236, .88);
+          margin-bottom: 10px;
+          font-size: 19px;
+          box-shadow: inset 0 0 0 1px rgba(222, 207, 198, .78);
+        }
+        .statLabel {
+          margin: 0;
+          font-size: 12px;
+          font-weight: 760;
+          color: var(--text2);
+          letter-spacing: .06em;
+        }
+        .statValue {
+          margin: 9px 0 0;
+          font-size: 30px;
+          line-height: 1.08;
+          font-weight: 820;
+          letter-spacing: -0.04em;
+          color: var(--pink);
+        }
+        .tone-purple .statValue { color: var(--purple); }
+        .tone-orange .statValue { color: var(--orange); }
+        .tone-green .statValue { color: var(--green); }
+        .tone-blue .statValue { color: var(--blue); }
+        .tone-purple .statIcon { background: #f3eef7; }
+        .tone-orange .statIcon { background: #fbf0e7; }
+        .tone-green .statIcon { background: #eef6f0; }
+        .tone-blue .statIcon { background: #edf3f8; }
+        .note {
+          margin: 6px 0 0;
+          color: var(--text2);
+          font-size: 12px;
+          line-height: 1.75;
+          font-weight: 560;
+        }
+        .sectionTitle {
+          margin: 0 0 16px;
+          font-size: 17px;
+          font-weight: 780;
+          color: #7b5d74;
+          letter-spacing: -0.02em;
+        }
+        .stack { display: flex; flex-direction: column; gap: 14px; }
+        .postItem, .knowledgeItem {
+          border: 1px solid rgba(222, 207, 198, .72);
+          border-radius: 22px;
+          background: rgba(255, 253, 250, .76);
+          padding: 17px;
+          box-shadow: 0 10px 26px rgba(122, 91, 83, .055);
+        }
+        .postItem { border-left: 4px solid rgba(196, 106, 145, .42); }
+        .postTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .postText { margin: 0; font-size: 14px; line-height: 1.85; white-space: pre-wrap; color: var(--text); font-weight: 560; }
+        .meta { margin: 11px 0 0; font-size: 12px; color: var(--text2); font-weight: 620; }
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          background: rgba(248, 239, 244, .84);
+          padding: 5px 10px;
+          color: #9f6280;
+          font-size: 12px;
+          font-weight: 720;
+          box-shadow: inset 0 0 0 1px rgba(226, 204, 214, .78);
+        }
+        .rank { color: #9f6280; font-weight: 800; }
+        .egPill {
+          border-radius: 999px;
+          background: rgba(238, 247, 241, .9);
+          color: #5f9378;
+          padding: 7px 11px;
+          font-size: 13px;
+          font-weight: 760;
+          white-space: nowrap;
+          box-shadow: inset 0 0 0 1px #d8eadf;
+        }
+        .advice {
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(255, 248, 244, .86), rgba(247, 242, 249, .86));
+          border: 1px solid rgba(222, 207, 198, .74);
+          padding: 15px;
+          font-size: 14px;
+          line-height: 1.8;
+          color: #5c4d4e;
+          font-weight: 560;
+        }
+        .profileBox {
+          border-radius: 20px;
+          background: rgba(248, 244, 250, .8);
+          border: 1px solid rgba(220, 207, 226, .72);
+          padding: 15px;
+        }
+        .smallLabel {
+          display: block;
+          margin: 0 0 8px;
+          color: #9a8b86;
+          font-size: 12px;
+          font-weight: 720;
+          letter-spacing: .03em;
+        }
+        input, textarea, select {
+          width: 100%;
+          border: 1px solid var(--line2);
+          border-radius: 18px;
+          background: rgba(255, 252, 249, .86);
+          color: var(--text);
+          padding: 13px 14px;
+          font: inherit;
+          outline: none;
+          font-weight: 560;
+          transition: box-shadow .18s ease, border-color .18s ease, background .18s ease;
+        }
+        textarea { min-height: 120px; resize: vertical; line-height: 1.75; }
+        input::placeholder, textarea::placeholder { color: #b8aaa6; }
+        input:focus, textarea:focus, select:focus {
+          border-color: #c7aab0;
+          box-shadow: 0 0 0 4px rgba(122, 91, 83, .09);
+          background: #fff;
+        }
+        .formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+        .buttonRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .tooltip {
+          background: #fffdfb;
+          border: 1px solid rgba(222, 207, 198, .78);
+          border-radius: 14px;
+          padding: 11px;
+          font-size: 12px;
+          box-shadow: 0 14px 30px rgba(122,91,83,.11);
+          color: var(--text);
+        }
+        .testPass { color: #5f9378; font-weight: 760; }
+        .testFail { color: #b15f72; font-weight: 760; }
+        .scoreWrap { height: 9px; border-radius: 999px; background: #f0e7ed; overflow: hidden; margin-top: 10px; }
+        .scoreFill { height: 100%; border-radius: 999px; background: var(--grad); }
+        .knowledgeList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .copyBox {
+          background: linear-gradient(135deg, #52424c, #3a3138);
+          color: #fff;
+          border-radius: 22px;
+          padding: 18px;
+          white-space: pre-wrap;
+          line-height: 1.85;
+          font-size: 14px;
+          font-weight: 560;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 12px 30px rgba(55, 30, 70, .14);
+        }
+        .switchRow { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: #766967; }
+        .miniGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .heroCard {
+          background: linear-gradient(135deg, rgba(255,255,255,.78), rgba(250,244,240,.82));
+          border: 1px solid rgba(222, 207, 198, .72);
+        }
+        .softDivider { height: 1px; background: linear-gradient(90deg, transparent, rgba(222, 207, 198, .9), transparent); margin: 2px 0; }
+        .emptyGlow {
+          min-height: 230px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          border-radius: 24px;
+          border: 1px dashed rgba(222, 207, 198, .9);
+          background: rgba(255, 252, 249, .72);
+          color: var(--text2);
+          font-weight: 650;
+        }
+        @media (max-width: 980px) {
+          .grid4, .grid2, .grid3, .inputGrid, .knowledgeList, .miniGrid { grid-template-columns: 1fr; }
+          .headerInner { align-items: flex-start; flex-direction: column; }
+          .tabs { justify-content: flex-start; border-radius: 24px; }
+          .title { font-size: 24px; }
+        }
+      `}</style>
+
+      <header className="header">
+        <div className="headerInner">
+          <div><h1 className="title"><span className="brandMark">✦</span>Threads Analyzer</h1><p className="subtitle">ふくさん専用｜投稿・導線・note販売までふわっと見える化</p></div>
+          <div className="tabs">
+            <button className={tabButtonClass("dashboard")} onClick={() => setTab("dashboard")}>📊 ダッシュボード</button>
+            <button className={tabButtonClass("input")} onClick={() => setTab("input")}>✍️ 投稿入力</button>
+            <button className={tabButtonClass("csv")} onClick={() => setTab("csv")}>📁 CSV</button>
+            <button className={tabButtonClass("threads")} onClick={() => setTab("threads")}>🔗 Threads連携</button>
+            <button className={tabButtonClass("next")} onClick={() => setTab("next")}>🧭 次の一手</button>
+            <button className={tabButtonClass("sales")} onClick={() => setTab("sales")}>💎 売れた前後</button>
+            <button className={tabButtonClass("knowledge")} onClick={() => setTab("knowledge")}>🧠 ナレッジ</button>
+            <button className={tabButtonClass("drafts")} onClick={() => setTab("drafts")}>✨ 投稿生成</button>
+            <button className={tabButtonClass("profile")} onClick={() => setTab("profile")}>⚙️ 設定</button>
+            <button className={tabButtonClass("tests")} onClick={() => setTab("tests")}>🧪 テスト</button>
+          </div>
+        </div>
+      </header>
+
+      <main className="main">
+        {tab === "dashboard" && (
+          <div className="stack">
+            <div className="grid4"><StatCard icon="📝" tone="purple" label="総投稿数" value={`${posts.length}件`} /><StatCard icon="💫" tone="pink" label="平均EG率" value={`${stats.avgEg}%`} note="いいね＋返信×3＋リポスト×2" /><StatCard icon="🕯️" tone="orange" label="私だけのゴールデンタイム" value={stats.goldenTime.bestLabel} note={`${stats.goldenTime.bestBand} / 信頼度${stats.goldenTime.confidence}%`} /><StatCard icon="💎" tone="green" label="note成果" value={`${stats.totalClicks}クリック / ${stats.totalSales}部`} /></div>
+            <div className="grid2"><Card><h2 className="sectionTitle">🕯️ 私だけのゴールデンタイム</h2><div className="profileBox"><span className="smallLabel">今いちばん強い時間</span><p className="postText" style={{ fontSize: 22, fontWeight: 820 }}>{stats.goldenTime.bestLabel}台</p><p className="note">{stats.goldenTime.insight}</p></div><div className="stack" style={{ marginTop: 14 }}>{stats.goldenTime.ranking.length ? stats.goldenTime.ranking.map((item, index) => <div key={item.hour} className="knowledgeItem"><div className="postTop"><div><strong>#{index + 1} {item.label}台</strong><br /><span className="note">{item.band}・投稿{item.count}件・信頼度{item.confidence}%</span></div><span className="egPill">勝ち時間 {item.score}点</span></div><ScoreBar score={clamp(item.score, 0, 100)} /><p className="meta">平均EG {item.avgEg}% / 平均導線 {item.avgFunnel}点 / noteクリック {item.clicks} / 購入 {item.sales}</p></div>) : <div className="emptyGlow">投稿時間を入れると、勝ち時間ランキングが出ます。</div>}</div></Card><Card><h2 className="sectionTitle">EG率と導線スコアの推移</h2><ResponsiveContainer width="100%" height={250}><LineChart data={stats.timeline}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis /><Tooltip content={<CustomTooltip />} /><Line type="monotone" dataKey="eg" name="EG率" stroke="#c46a91" strokeWidth={3} dot={{ r: 4 }} /><Line type="monotone" dataKey="funnel" name="導線スコア" stroke="#8f73b8" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer></Card><Card><h2 className="sectionTitle">フック別：導線の強さ</h2><ResponsiveContainer width="100%" height={250}><BarChart data={stats.hookData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="hook" /><YAxis /><Tooltip content={<CustomTooltip />} /><Bar dataKey="funnel" name="導線スコア" fill="#8f73b8" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer></Card></div>
+            <div className="grid2"><Card><h2 className="sectionTitle">投稿役割別：noteに近い投稿</h2><ResponsiveContainer width="100%" height={230}><BarChart data={stats.roleData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="role" /><YAxis /><Tooltip content={<CustomTooltip />} /><Bar dataKey="funnel" name="導線スコア" fill="#c98251" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer></Card><Card><h2 className="sectionTitle">ふく式診断</h2><div className="stack">{generateFukuAdvice().map((item, index) => <div key={index} className="advice">{item}</div>)}</div></Card></div>
+            <div className="grid3"><Card><h2 className="sectionTitle">導線スコアランキング</h2><div className="stack">{stats.funnelSorted.map((post, index) => <div key={post.id} className="postItem"><div className="postTop"><div className="buttonRow"><span className="rank">#{index + 1}</span><Badge>{post.hookType}</Badge><Badge>{post.role}</Badge><Badge>{post.readerPsyche}</Badge></div><span className="egPill">導線 {funnelScore(post, profile)}点</span></div><ScoreBar score={funnelScore(post, profile)} /><p className="postText" style={{ marginTop: 12 }}>{post.text}</p><p className="meta">EG {engagementRate(post)}% / noteクリック率 {clickRate(post)}% / note購入率 {salesRate(post)}% / {post.date} {post.time}</p></div>)}</div></Card><Card><h2 className="sectionTitle">インプと購入は別で見る</h2><div className="profileBox"><span className="smallLabel">ふく式の前提</span><p className="postText" style={{ fontWeight: 800 }}>{FUKU_KNOWLEDGE.funnelRule}</p></div><div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">ターゲット</span><p className="postText" style={{ fontWeight: 800 }}>{profile.target}</p></div><div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">メインメッセージ</span><p className="postText" style={{ fontWeight: 800 }}>{profile.mainMessage}</p></div></Card></div>
+          </div>
+        )}
+
+        {tab === "input" && (
+          <div className="inputGrid"><Card><h2 className="sectionTitle">投稿データを追加</h2><div className="stack"><label className="switchRow"><input type="checkbox" checked={autoClassify} onChange={(e) => setAutoClassify(e.target.checked)} style={{ width: 18 }} />本文から自動分類する</label><label><span className="smallLabel">投稿本文</span><textarea value={form.text} onChange={(e) => updateText(e.target.value)} placeholder="投稿本文を入れる" /></label><div className="formGrid"><label><span className="smallLabel">日付</span><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label><span className="smallLabel">時間</span><input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label><label><span className="smallLabel">いいね</span><input type="number" min="0" value={form.likes} onChange={(e) => setForm({ ...form, likes: e.target.value })} /></label><label><span className="smallLabel">返信</span><input type="number" min="0" value={form.replies} onChange={(e) => setForm({ ...form, replies: e.target.value })} /></label><label><span className="smallLabel">リポスト</span><input type="number" min="0" value={form.reposts} onChange={(e) => setForm({ ...form, reposts: e.target.value })} /></label><label><span className="smallLabel">閲覧数</span><input type="number" min="0" value={form.views} onChange={(e) => setForm({ ...form, views: e.target.value })} /></label><label><span className="smallLabel">F増減</span><input type="number" value={form.fc} onChange={(e) => setForm({ ...form, fc: e.target.value })} /></label><label><span className="smallLabel">noteクリック数</span><input type="number" min="0" value={form.noteClicks} onChange={(e) => setForm({ ...form, noteClicks: e.target.value })} /></label><label><span className="smallLabel">note購入数</span><input type="number" min="0" value={form.noteSales} onChange={(e) => setForm({ ...form, noteSales: e.target.value })} /></label><label><span className="smallLabel">フックタイプ</span><select value={form.hookType} onChange={(e) => setForm({ ...form, hookType: e.target.value })}>{HOOK_TYPES.map((hook) => <option key={hook} value={hook}>{hook}</option>)}</select></label><label><span className="smallLabel">投稿の役割</span><select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>{POST_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></label><label><span className="smallLabel">読者心理</span><select value={form.readerPsyche} onChange={(e) => setForm({ ...form, readerPsyche: e.target.value })}>{READER_PSYCHES.map((psyche) => <option key={psyche} value={psyche}>{psyche}</option>)}</select></label></div><div className="buttonRow"><button className="primaryButton" onClick={addPost}>追加する</button><button className="ghostButton" onClick={() => setPosts(SAMPLE_POSTS)}>サンプルに戻す</button><button className="dangerButton" onClick={() => setPosts([])}>全削除</button></div></div></Card><Card><h2 className="sectionTitle">入力済み投稿</h2><div className="stack">{posts.length === 0 ? <p className="note">まだ投稿がありません。</p> : null}{posts.map((post) => <div key={post.id} className="postItem"><div className="postTop"><div className="buttonRow"><Badge>{post.hookType}</Badge><Badge>{post.role}</Badge><Badge>{post.readerPsyche}</Badge></div><button className="dangerButton" onClick={() => setPosts((prev) => prev.filter((p) => p.id !== post.id))}>削除</button></div><p className="postText">{post.text}</p><p className="meta">EG {engagementRate(post)}% / 導線 {funnelScore(post, profile)}点 / note {post.noteClicks || 0}クリック・{post.noteSales || 0}部</p></div>)}</div></Card></div>
+        )}
+
+        {tab === "csv" && (
+          <div className="grid2"><Card><h2 className="sectionTitle">CSVインポート / エクスポート</h2><p className="note">ヘッダーは text,date,time,likes,replies,reposts,views,fc,noteClicks,noteSales があればOK。hookType/role/readerPsycheが空なら自動分類します。</p><textarea style={{ minHeight: 300, marginTop: 14 }} value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={CSV_COLUMNS.join(",")} /><div className="buttonRow" style={{ marginTop: 12 }}><button className="primaryButton" onClick={importCsv}>CSVを取り込む</button><button className="ghostButton" onClick={loadSampleCsv}>サンプルCSV</button><button className="ghostButton" onClick={exportCsv}>現在データを書き出す</button></div>{csvMessage ? <div className="advice" style={{ marginTop: 12 }}>{csvMessage}</div> : null}</Card><Card><h2 className="sectionTitle">CSV列の意味</h2><div className="stack">{CSV_COLUMNS.map((col) => <div className="knowledgeItem" key={col}><strong>{col}</strong><br /><span className="note">{col === "text" ? "投稿本文" : col === "fc" ? "フォロワー増減" : col === "noteClicks" ? "noteクリック数" : col === "noteSales" ? "note購入数" : "Threads投稿の数値または分類"}</span></div>)}</div></Card></div>
+        )}
+
+        {tab === "threads" && (
+          <div className="stack">
+            <Card>
+              <h2 className="sectionTitle">Threads公式API連携の準備</h2>
+              <p className="note">ここは本番連携の設計図です。アクセストークンやClient SecretはReactに置かず、必ずバックエンド側で扱います。</p>
+              <div className="knowledgeList" style={{ marginTop: 14 }}>
+                {THREADS_API_NOTES.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}
+              </div>
+            </Card>
+
+            <div className="grid2">
+              <Card>
+                <h2 className="sectionTitle">OAuth設定</h2>
+                <div className="stack">
+                  <label><span className="smallLabel">Threads App ID / Client ID</span><input value={threadsConfig.clientId} onChange={(e) => setThreadsConfig({ ...threadsConfig, clientId: e.target.value })} placeholder="MetaアプリのClient ID" /></label>
+                  <label><span className="smallLabel">OAuthリダイレクトURL</span><input value={threadsConfig.redirectUri} onChange={(e) => setThreadsConfig({ ...threadsConfig, redirectUri: e.target.value })} /></label>
+                  <label><span className="smallLabel">バックエンドAPI URL</span><input value={threadsConfig.backendBaseUrl} onChange={(e) => setThreadsConfig({ ...threadsConfig, backendBaseUrl: e.target.value })} /></label>
+                  <div>
+                    <span className="smallLabel">利用スコープ</span>
+                    <div className="stack">
+                      {THREADS_SCOPE_OPTIONS.map((scope) => <label key={scope} className="switchRow"><input type="checkbox" checked={threadsConfig.scopes.includes(scope)} onChange={() => toggleThreadScope(scope)} style={{ width: 18 }} />{scope}</label>)}
+                    </div>
+                  </div>
+                  <div className="copyBox">{threadsAuthUrl || "Client IDとリダイレクトURLを入れると、認可URLがここに出ます。"}</div>
+                  {threadsAuthDiagnostics.length ? <div className="advice">{threadsAuthDiagnostics.map((item) => <div key={item}>⚠️ {item}</div>)}</div> : <div className="advice">✅ 認可URLには client_id が入っています。次はMeta側のThreads用App IDか、リダイレクトURL完全一致を確認してください。</div>}
+                  <div className="buttonRow">
+                    <button className="ghostButton" onClick={() => navigator.clipboard?.writeText(threadsAuthUrl || "")}>認可URLをコピー</button>
+                    <button className="primaryButton" onClick={() => threadsAuthUrl && window.open(threadsAuthUrl, "_blank")}>認可URLを開く</button>
+                  </div>
+                  <div className="knowledgeItem"><strong>エラー4476002が出た時</strong><br /><span className="note">URL内に client_id=数字 があるか確認してください。Metaアプリの通常App IDではなく、Threadsユースケース側のApp IDが必要なケースがあります。</span></div>
+                  <div className="knowledgeItem"><strong>エラー1349168が出た時</strong><br /><span className="note">redirect_uri がMeta側の「有効なOAuthリダイレクトURI」に完全一致で登録されていません。https、ドメイン、パス、末尾スラッシュまで同じにしてください。</span></div>
+                </div>
+              </Card>
+
+              <Card>
+                <h2 className="sectionTitle">バックエンドに必要なAPI</h2>
+                <div className="stack">
+                  <div className="knowledgeItem"><strong>GET /auth/start</strong><br /><span className="note">Threadsの認可画面へリダイレクトする。</span></div>
+                  <div className="knowledgeItem"><strong>GET /callback</strong><br /><span className="note">codeを受け取り、バックエンドでaccess_tokenへ交換する。</span></div>
+                  <div className="knowledgeItem"><strong>GET /posts</strong><br /><span className="note">Threads投稿とインサイトを取得し、このアプリの形式に変換する。</span></div>
+                  <div className="knowledgeItem"><strong>POST /sync</strong><br /><span className="note">取得した投稿をDBへ保存して、分析画面に返す。</span></div>
+                  <div className="knowledgeItem"><strong>ENV</strong><br /><span className="note">THREADS_APP_ID、THREADS_APP_SECRET、THREADS_ACCESS_TOKEN をバックエンドの環境変数に保存。Reactには置かない。</span></div>
+                </div>
+              </Card>
+            </div>
+
+            <div className="grid2">
+              <Card>
+                <h2 className="sectionTitle">どれを使えばいいか判定</h2>
+                <p className="note">キーの中身ではなく、Meta画面に出ているラベル名だけ入れてください。例：App ID、App Secret、Access Token、Client Token。</p>
+                <label style={{ display: "block", marginTop: 14 }}><span className="smallLabel">ラベル名・項目名</span><input value={credentialHint} onChange={(e) => setCredentialHint(e.target.value)} placeholder="例：Threads App ID / App Secret / Access Token" /></label>
+                <div className="advice" style={{ marginTop: 12 }}>{credentialGuess.safety === "danger" ? "🚨" : credentialGuess.safety === "warn" ? "⚠️" : "✅"} <strong>{credentialGuess.title}</strong><br />{credentialGuess.message}</div>
+                <div className="stack" style={{ marginTop: 12 }}>
+                  {THREADS_CREDENTIAL_TYPES.map((item) => <div key={item.name} className="knowledgeItem"><strong>{item.safeForFrontend ? "✅" : "🔒"} {item.name}</strong><br /><span className="note">見た目：{item.whatItLooksLike}<br />使う場所：{item.whereToUse}<br />注意：{item.warning}</span></div>)}
+                </div>
+              </Card>
+
+              <Card>
+                <h2 className="sectionTitle">Threads API風JSONを仮取り込み</h2>
+                <p className="note">実連携前に、バックエンドから返る想定のJSONを貼って分析に入れられます。バックエンドができたら、下のボタンで自動同期できます。</p>
+                <div className="buttonRow" style={{ marginTop: 12 }}>
+                  <button className="primaryButton" onClick={syncThreadsFromBackend} disabled={threadsSyncStatus === "loading"}>{threadsSyncStatus === "loading" ? "同期中…" : "バックエンドからThreads同期"}</button>
+                </div>
+                <textarea style={{ minHeight: 300, marginTop: 14 }} value={threadsJson} onChange={(e) => setThreadsJson(e.target.value)} placeholder={'{"data":[{"text":"投稿本文","timestamp":"2026-05-25T12:00:00Z","insights":{"views":1000,"likes":20,"replies":3,"reposts":2}}]}'} />
+                <div className="buttonRow" style={{ marginTop: 12 }}>
+                  <button className="primaryButton" onClick={importThreadsJson}>JSONを取り込む</button>
+                  <button className="ghostButton" onClick={loadThreadsSampleJson}>サンプルJSON</button>
+                </div>
+                {threadsMessage ? <div className="advice" style={{ marginTop: 12 }}>{threadsMessage}</div> : null}
+              </Card>
+
+              <Card>
+                <h2 className="sectionTitle">連携後のデータ設計</h2>
+                <div className="profileBox"><span className="smallLabel">Threads APIで取る</span><p className="postText">投稿本文、投稿日、投稿ID、閲覧数、いいね、返信、リポストなど。</p></div>
+                <div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">ふく式で手入力/別連携</span><p className="postText">noteクリック数、note購入数、売れた時間、商品名、追記/値上げタイミング。</p></div>
+                <div className="profileBox" style={{ marginTop: 12 }}><span className="smallLabel">分析に使う</span><p className="postText">Threads数値 × note成果 × 投稿分類 × 読者心理 × ふく式前提設定。</p></div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {tab === "next" && (
+          <div className="grid2"><Card><h2 className="sectionTitle">次に出すべき投稿</h2><div className="profileBox"><span className="smallLabel">おすすめ</span><p className="postText" style={{ fontWeight: 900 }}>{stats.nextRec.hook} × {stats.nextRec.role} × {stats.nextRec.psyche}</p></div><div className="advice" style={{ marginTop: 14 }}>{stats.nextRec.reason}</div><div className="miniGrid" style={{ marginTop: 14 }}><StatCard label="推奨テーマ" value={stats.nextRec.theme} /><StatCard label="狙う役割" value={stats.nextRec.role} /><StatCard label="読者心理" value={stats.nextRec.psyche} /></div></Card><Card><h2 className="sectionTitle">そのまま使える下書き</h2><div className="copyBox">{makeDraftByRecommendation(stats.nextRec)}</div></Card></div>
+        )}
+
+        {tab === "sales" && (
+          <div className="stack"><Card><h2 className="sectionTitle">売れた前後分析</h2><p className="note">note購入数が1以上の投稿を起点に、販売前3日・販売後1.5日の流れを見ます。</p></Card>{stats.saleWindows.length === 0 ? <Card><p className="postText">まだnote購入数が入っている投稿がありません。</p></Card> : null}{stats.saleWindows.map((window) => <Card key={window.salePost.id}><div className="postTop"><h2 className="sectionTitle" style={{ margin: 0 }}>売れた投稿：{window.salePost.date} {window.salePost.time}</h2><span className="egPill">{window.salePost.noteSales}部</span></div><p className="postText">{window.salePost.text}</p><div className="advice" style={{ marginTop: 12 }}>{window.insight}</div><div className="grid2" style={{ marginTop: 14 }}><div><h3 className="smallLabel">販売前3日間の投稿</h3><div className="stack">{window.before.length ? window.before.map((p) => <div key={p.id} className="knowledgeItem">{p.date} {p.time}<br />{p.text.slice(0, 70)}<br /><span className="note">{p.role} / 導線{funnelScore(p, profile)}点</span></div>) : <div className="knowledgeItem">該当なし</div>}</div></div><div><h3 className="smallLabel">販売後1.5日間の投稿</h3><div className="stack">{window.after.length ? window.after.map((p) => <div key={p.id} className="knowledgeItem">{p.date} {p.time}<br />{p.text.slice(0, 70)}<br /><span className="note">{p.role} / 導線{funnelScore(p, profile)}点</span></div>) : <div className="knowledgeItem">該当なし</div>}</div></div></div></Card>)}</div>
+        )}
+
+        {tab === "knowledge" && (
+          <div className="stack"><Card><h2 className="sectionTitle">読み込み済み：ふく式Threads運用ナレッジ</h2><p className="postText">{FUKU_KNOWLEDGE.corePosition}</p><div className="profileBox" style={{ marginTop: 14 }}><span className="smallLabel">基本メッセージ</span><p className="postText" style={{ fontWeight: 900 }}>{FUKU_KNOWLEDGE.mainMessage}</p></div></Card><div className="knowledgeList"><Card><h2 className="sectionTitle">投稿タイプ</h2><div className="stack">{FUKU_KNOWLEDGE.contentRoles.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card><Card><h2 className="sectionTitle">フックルール</h2><div className="stack">{FUKU_KNOWLEDGE.hookRules.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card><Card><h2 className="sectionTitle">note導線フレーズ</h2><div className="stack">{FUKU_KNOWLEDGE.noteBridge.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card><Card><h2 className="sectionTitle">避けること</h2><div className="stack">{FUKU_KNOWLEDGE.avoid.map((item) => <div key={item} className="knowledgeItem">{item}</div>)}</div></Card></div></div>
+        )}
+
+        {tab === "drafts" && (
+          <div className="grid2"><Card><h2 className="sectionTitle">ふく式 投稿生成</h2><p className="note">ナレッジをもとに、共感・情報緊急・導線・診断型のたたき台を出します。</p><label style={{ display: "block", marginTop: 16 }}><span className="smallLabel">テーマ</span><input value={draftTheme} onChange={(e) => setDraftTheme(e.target.value)} placeholder="例：夫のただいまが怖い" /></label><div className="profileBox" style={{ marginTop: 16 }}><span className="smallLabel">生成ルール</span><p className="postText">Threadsでは感情の揺さぶりと自分ごと化まで。noteで納得・手順・安心感を渡す。</p></div></Card><Card><h2 className="sectionTitle">生成結果</h2><div className="stack">{generateDrafts().map((draft, index) => <div key={index} className="copyBox">{draft}</div>)}</div></Card></div>
+        )}
+
+        {tab === "profile" && (
+          <div className="stack"><Card><h2 className="sectionTitle">分析の前提設定マスター</h2><p className="note">これまで一緒に作ってきた、ふくさん専用の発信戦略を初期値として入れています。ここを書き換えると、導線スコア・次の一手・投稿生成の判断基準も変わります。</p><div className="buttonRow" style={{ marginTop: 14 }}><button className="primaryButton" onClick={() => setProfile(DEFAULT_PROFILE)}>ふく式デフォルトに戻す</button></div></Card><div className="grid2"><Card><h2 className="sectionTitle">① 基本プロフィール</h2><div className="stack"><label><span className="smallLabel">発信者の立ち位置</span><textarea value={profile.position} onChange={(e) => setProfile({ ...profile, position: e.target.value })} /></label><label><span className="smallLabel">ターゲット読者</span><textarea value={profile.target} onChange={(e) => setProfile({ ...profile, target: e.target.value })} /></label><label><span className="smallLabel">ひとりに絞った読者像</span><textarea value={profile.onePersonTarget} onChange={(e) => setProfile({ ...profile, onePersonTarget: e.target.value })} /></label><label><span className="smallLabel">商品</span><input value={profile.product} onChange={(e) => setProfile({ ...profile, product: e.target.value })} /></label><label><span className="smallLabel">無料導線</span><input value={profile.freeLead} onChange={(e) => setProfile({ ...profile, freeLead: e.target.value })} /></label><label><span className="smallLabel">目的</span><input value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })} /></label></div></Card><Card><h2 className="sectionTitle">② ブランド思想</h2><div className="stack"><label><span className="smallLabel">届ける約束</span><textarea value={profile.brandPromise} onChange={(e) => setProfile({ ...profile, brandPromise: e.target.value })} /></label><label><span className="smallLabel">メインメッセージ</span><textarea value={profile.mainMessage} onChange={(e) => setProfile({ ...profile, mainMessage: e.target.value })} /></label><label><span className="smallLabel">基本CTA</span><textarea value={profile.cta} onChange={(e) => setProfile({ ...profile, cta: e.target.value })} /></label><label><span className="smallLabel">導線設計</span><textarea value={profile.funnelDesign} onChange={(e) => setProfile({ ...profile, funnelDesign: e.target.value })} /></label></div></Card></div><div className="grid2"><Card><h2 className="sectionTitle">③ 勝ちパターン</h2><p className="note">1行1パターンで編集できます。</p><textarea style={{ minHeight: 260, marginTop: 12 }} value={profile.winningPatterns} onChange={(e) => setProfile({ ...profile, winningPatterns: e.target.value })} /></Card><Card><h2 className="sectionTitle">④ 避ける表現</h2><p className="note">投稿生成や分析で、避けたい方向性として扱います。</p><textarea style={{ minHeight: 260, marginTop: 12 }} value={profile.avoidTone} onChange={(e) => setProfile({ ...profile, avoidTone: e.target.value })} /></Card></div><Card><h2 className="sectionTitle">前提設定サマリー</h2><div className="knowledgeList"><div className="knowledgeItem"><strong>このアプリが高く評価する投稿</strong><p className="note">読者の怖さを言語化し、準備という希望を渡し、note/プロフィールへの自然な橋がある投稿。</p></div><div className="knowledgeItem"><strong>このアプリが注意する投稿</strong><p className="note">共感だけで終わる投稿、専門用語から入る投稿、売り込みの脈絡がない投稿、読者を責める投稿。</p></div><div className="knowledgeItem"><strong>導線スコアへの反映</strong><p className="note">設定内容に沿うキーワードやメッセージがある投稿は、プロフィール一致スコアとして導線スコアに上乗せします。</p></div><div className="knowledgeItem"><strong>ふく式の軸</strong><p className="note">{profile.mainMessage}</p></div></div></Card></div>
+        )}
+
+        {tab === "tests" && (
+          <Card><h2 className="sectionTitle">簡易テスト</h2><p className="note">導線スコア・noteクリック率・CSV・自動分類・ナレッジ読み込みが壊れていないか確認します。</p><div className="stack" style={{ marginTop: 16 }}>{tests.map((test) => <div key={test.name} className="postItem"><div className={test.passed ? "testPass" : "testFail"}>{test.passed ? "PASS" : "FAIL"}</div><p className="postText" style={{ fontWeight: 800 }}>{test.name}</p><p className="meta">expected: {test.expected} / actual: {test.actual}</p></div>)}</div><button className="ghostButton" style={{ marginTop: 16 }} onClick={() => setShowTests(!showTests)}>{showTests ? "テスト詳細を隠す" : "テスト詳細を見る"}</button>{showTests ? <pre className="postItem" style={{ overflowX: "auto", marginTop: 12 }}>{JSON.stringify(tests, null, 2)}</pre> : null}</Card>
+        )}
+      </main>
+    </div>
+  );
+}
