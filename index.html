@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ふく｜Threads分析アプリ</title>
+  <title>Threads Detective</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:#fdf8ff;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;}
@@ -565,10 +565,10 @@ const EXTENDED_KNOWLEDGE = {
 分析して現実を変えるための行動に落とし込んでください。
 
 【私の目標】
-収益目標：[月100万円]
+収益目標：[月10万円→月30万円→月100万円]
 媒体：[Threads × note]
-商品：[dododo ChatGPT・有料note・ロードマップ教材]
-ターゲット：[副業したいAI初心者]
+商品：[有料note・マガジン]
+ターゲット：[モラハラ被害中で動けないでいるママ]
 ポジション：[AI活用を感情的に欲しくなる商品に変換できる人]
 悩み：[投稿は伸びるがnoteとの導線が弱い]
 
@@ -577,7 +577,7 @@ const EXTENDED_KNOWLEDGE = {
 必ず以下を出す：現状詰まりポイント / ボトルネック1〜3個 / やめること・直すこと・作ること / 7日間プラン`,
     weeklyReviewPrompt: `今週のThreads運用を振り返ってください。
 
-前提：目標月100万・本命導線はプロフィールnote・かおりスタイルで人間味MAX・数字は厳しめ
+前提：目標月100万・本命導線はプロフィールnote・ふくスタイルで人間味MAX・数字は厳しめ
 
 期間：[日付]
 やったこと：[投稿内容・数字]
@@ -639,7 +639,21 @@ const FUKU_KNOWLEDGE = {
     bestHooks: ["モラハラチェックリスト系（診断・共感型）", "実体験暴露系（私も同じだった）", "準備できること具体的提示（今日からできる）", "弁護士費用なしでできたこと"],
     resonanceTriggers: ["『これってモラハラ？』の疑問に答える", "証拠の集め方を具体的に", "子どもへの影響を正直に", "一人でできる準備ステップ"],
     ctaStyle: "売り込みではなく『準備の後押し』スタイル。プロフやnoteへの誘導は自然に。",
-    avoidWords: ["すぐ離婚して", "弁護士に頼め", "あなたは大丈夫"]
+    avoidWords: ["すぐ離婚して", "弁護士に頼め", "あなたは大丈夫"],
+    buzzFormula: {
+      name: "skun_1000式バズる投稿の型",
+      structure: ["フック","ターゲット","問題提起 or 常識破壊","読んだらどうなるか or 読まないとどうなるか","証明","続きが気になる文章（ツリー誘導）","有益情報（ツリー内）","CTA"],
+      steps: [
+        { id:1, name:"フック", desc:"最初に目を止める一文。「え、なに？」と思わせる", examples:["恐ろしい話をする","エロい話なんだけど、"] },
+        { id:2, name:"ターゲット", desc:"誰に向けた投稿か明示。「自分に関係ある」と思わせる", examples:["毎日疲れが取れない人は〜","育児に疲れてるお母さんへ〜","モラハラかもと思い始めたあなたへ"] },
+        { id:3, name:"問題提起 or 常識破壊", desc:"問題提起：読者の悩みを言語化。常識破壊：みんなが正しいと思ってることをひっくり返す", examples:["寝ても疲れが残るの、年齢のせいじゃないです","証拠を集めてから動こう、は間違いかもしれない"] },
+        { id:4, name:"読んだらどうなるか / 読まないとどうなるか", desc:"得か損を示す。人は得がある・損を避けられると思った時だけ続きを読む", examples:["これを知ると、離婚準備で損しなくなります","知らないままだと、調停で不利になるかもしれません"] },
+        { id:5, name:"証明", desc:"「なんであなたがそれを言えるの？」に答える。実績・経験・数字・データ", examples:["調停離婚を実際に経験した三姉妹の母として","モラハラ被害→証拠収集→調停離婚まで全部やった私が"] },
+        { id:6, name:"続きが気になる文章（ツリー誘導）", desc:"本投稿で結論を全部言わない。ツリーに誘導する", examples:["その答えが、","ここからが本題で、","続きはスレッドに書いたよ↓"] },
+        { id:7, name:"有益情報（ツリー内）", desc:"期待を超える内容を出す。一次情報が最強。自分の経験を必ず混ぜる", examples:["実際の調停でやったこと","証拠収集の具体的な順番"] },
+        { id:8, name:"CTA", desc:"してほしい行動を明示する", examples:["有益だと思ったらフォローして","役に立ったらいいね","詳しくはプロフのnoteへ"] }
+      ]
+    }
   },
   noteBridge: {
     trigger: "投稿で『準備の入口』を見せてnoteで『準備の全体像』を渡す",
@@ -1474,7 +1488,8 @@ function App() {
   const [threadsConfig, setThreadsConfig] = useState({
     clientId: "",
     redirectUri: "https://your-domain.com/callback",
-    backendUrl: "https://your-domain.com/api"
+    backendUrl: "https://your-domain.com/api",
+    scopes: ["threads_basic"]
   });
   const [threadsJson, setThreadsJson] = useState("");
   const [threadsMsg, setThreadsMsg] = useState("");
@@ -1487,6 +1502,23 @@ function App() {
     message: FUKU_KNOWLEDGE.position,
     cta: FUKU_KNOWLEDGE.noteBridge[0]
   });
+  const [ghostText, setGhostText] = useState('');
+  const [ghostLoading, setGhostLoading] = useState(false);
+  const [ghostResult, setGhostResult] = useState('');
+  const [reflectForm, setReflectForm] = useState({period:'',posts_text:'',numbers:'',win_post:'',lose_post:'',concern:''});
+  const [reflectLoading, setReflectLoading] = useState(false);
+  const [reflectResult, setReflectResult] = useState('');
+  const [knowledgeTab, setKnowledgeTab] = useState('kaori');
+  const [strategyData, setStrategyData] = useState({ product: "", price: "", description: "", url: "", followers: "", profileVisits: "", noteViews: "", orders: "", revenue: "" });
+  const [strategyResult, setStrategyResult] = useState("");
+  const [strategyLoading, setStrategyLoading] = useState(false);
+  const [contentTemplate, setContentTemplate] = useState("prep");
+  const [contentTheme, setContentTheme] = useState("");
+  const [contentResult, setContentResult] = useState("");
+  const [contentLoading, setContentLoading] = useState(false);
+  const [useKnowledge, setUseKnowledge] = useState(true);
+  const [useStrategy, setUseStrategy] = useState(false);
+  const [useBuzz, setUseBuzz] = useState(false);
   useEffect(() => {
     async function load() {
       try {
@@ -1688,27 +1720,33 @@ function App() {
     setCsvText(toCsv(posts));
     setCsvMsg("現在のデータをCSV欄に出力しました。");
   }
-  async function callAPI(system, user) {
+  async function callAPI(system, user, maxTokens) {
+    maxTokens = maxTokens || 2500;
     if (!apiKey) throw new Error("APIキーが未設定です。⚙️設定タブで入力してください。");
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2500,
-        system,
-        messages: [{
-          role: "user",
-          content: user
-        }]
-      })
-    });
+    // CORSプロキシ経由でAnthropicAPIを呼び出す
+    const PROXY = "https://corsproxy.io/?url=https://api.anthropic.com/v1/messages";
+    let res;
+    try {
+      res = await fetch(PROXY, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-request-origin": "https://corsproxy.io"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: maxTokens,
+          system,
+          messages: [{ role: "user", content: user }]
+        })
+      });
+    } catch(fetchErr) {
+      throw new Error("通信エラー。インターネット接続を確認してください: " + fetchErr.message);
+    }
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error("APIエラー: " + (data.error.message || JSON.stringify(data.error)));
     return data.content?.filter(c => c.type === "text").map(c => c.text).join("\n") || "";
   }
   function buildCtx() {
@@ -1789,7 +1827,7 @@ function App() {
     desc: "5STEP設計・売れる出し方"
   }];
   const SYSTEMS = {
-    full: `あなたは月商1000万円以上を継続する日本トップクラスのSNS×コンテンツマーケティングコンサルタントです。クライアントはThreadsとnoteで稼ぐ「かおり（ふく（fuku.2025_hpgd））」さんです。
+    full: `あなたは月商1000万円以上を継続する日本トップクラスのSNS×コンテンツマーケティングコンサルタントです。クライアントはThreadsとnoteで稼ぐ「ふく（fuku.2025_hpgd）」さんです。
 
 【クライアント基本情報】
 ${JSON.stringify(FUKU_KNOWLEDGE, null, 1)}
@@ -1944,14 +1982,7 @@ ${ctx.all}
     setGenResult("");
     try {
       const ctx = buildCtx();
-      const result = await callAPI(`あなたはThreads専門の一流コピーライター。ふく（fuku.2025_hpgd）（AI×note×副業）の文体を完璧に模倣する。
-ルール：冒頭1行が命・do精神・かわいい×AI×稼ぐ・売り込み感ゼロ・自然なCTA・改行効果的。
-クライアントナレッジ：${JSON.stringify({
-        winningPatterns: FUKU_KNOWLEDGE.winningPatterns,
-        hookRules: FUKU_KNOWLEDGE.winningPatterns,
-        noteBridge: FUKU_KNOWLEDGE.noteBridge,
-        avoid: FUKU_KNOWLEDGE.avoid
-      }, null, 1)}`, `私のThreadsに合った投稿案を生成してください。
+      const result = await callAPI(`あなたはThreads専門の一流コピーライター。ふく（fuku.2025_hpgd）の文体を完璧に模倣する。\nジャンル：離婚・モラハラ・証拠収集・調停。読者：動けないでいるモラハラ被害ママ。\nルール：冒頭1行が命・共感から入る・正論で攻めない・準備ならできると思わせる・売り込み感ゼロ・note誘導は自然に。\n\n【skun_1000式バズる投稿の型（必ず意識すること）】\n${FUKU_KNOWLEDGE.winningPatterns.buzzFormula.steps.map(s=>"STEP"+s.id+" "+s.name+": "+s.desc).join("\\n")}\n\n【ふくの勝ちパターン】\n${FUKU_KNOWLEDGE.winningPatterns.bestHooks.join(" / ")}\n\n【避けること】\n${FUKU_KNOWLEDGE.avoid.topics.join(" / ")}\n\n【note導線方針】\n${FUKU_KNOWLEDGE.noteBridge.trigger}`, `私のThreadsに合った投稿案を生成してください。
 
 【私のTOP投稿（トーン参考）】
 ${ctx.top3}
@@ -1979,6 +2010,48 @@ CTA：${genForm.cta || "なし"}
     }
     setGenLoading(false);
   }
+  async function runStrategy(mode) {
+    setStrategyLoading(true); setStrategyResult("");
+    try {
+      const modeLabels = { funnel: "売上導線診断", plan7: "7日間実行計画", plan30: "30日間実行計画", plan90: "90日間実行計画", weekly: "週次改善プラン" };
+      const system = `あなたはThreads×note売上導線の戦略コンサルタントです。クライアント：ふく（fuku.2025_hpgd）。ジャンル：離婚・モラハラ・証拠収集・調停。ポジション：${FUKU_KNOWLEDGE.position.core}。ターゲット：${FUKU_KNOWLEDGE.target.primary}。
+商品情報：${JSON.stringify(strategyData)}
+勝ちパターン：${FUKU_KNOWLEDGE.winningPatterns.bestHooks.join("/")}`;
+      const user = `【モード】${modeLabels[mode]}
+【現在の商品】${strategyData.product||"未設定"}（${strategyData.price||"価格未設定"}）
+【導線URL】${strategyData.url||"未設定"}
+【ファネル数字】フォロワー増加:${strategyData.followers}/月, プロフ訪問:${strategyData.profileVisits}, note閲覧:${strategyData.noteViews}, 購入数:${strategyData.orders}, 売上:${strategyData.revenue}
+
+${mode==="funnel"?"売上導線の現状を診断し、ボトルネックと改善案を具体的に出してください。":mode==="plan7"?"今日から7日間の具体的な実行計画を日単位で出してください。":mode==="plan30"?"30日間のロードマップを週単位で出してください。":mode==="plan90"?"90日間の成長計画を月単位で出してください。":"今週の振り返りと来週の改善プランを具体的に出してください。"}`;
+      const r = await callAPI(system, user);
+      setStrategyResult(r);
+    } catch(e) { setStrategyResult("エラー: " + e.message); }
+    finally { setStrategyLoading(false); }
+  }
+
+  async function runContentCreate() {
+    if (!contentTheme.trim()) return alert("テーマ・キーワードを入力してください");
+    setContentLoading(true); setContentResult("");
+    try {
+      const templates = { prep:  "PREP法（結論→理由→具体例→結論）", pasona: "PASONA法（問題→共感→解決策→提案→行動）", story: "体験談（出来事→感情→気づき→変化）", knowhow: "ノウハウ記事（手順・リスト形式）", note: "有料note（無料部分＋有料部分の設計）", faq: "FAQ形式（よくある質問と回答）", case: "事例紹介（ビフォーアフター）", compare: "比較記事（A vs B）", launch: "ローンチ告知（新商品告知・購買促進）", free: "無料プレゼント誘導（リード獲得）", summary: "まとめ記事（総まとめ・保存版）" };
+      let context = "";
+      if (useKnowledge) context += `
+クライアント情報：ふく（fuku.2025_hpgd）。${FUKU_KNOWLEDGE.position.core}。ターゲット：${FUKU_KNOWLEDGE.target.primary}。避けること：${FUKU_KNOWLEDGE.avoid.topics.join("/")}。`;
+      if (useStrategy) context += `
+商品情報：${strategyData.product||"未設定"}（${strategyData.price||"未設定"}）。${strategyData.description||""}。申込URL：${strategyData.url||"未設定"}。`;
+      if (useBuzz) context += `
+バズる投稿の型（skun_1000式）：${FUKU_KNOWLEDGE.winningPatterns.buzzFormula.structure.join("→")}。`;
+      const system = `あなたは離婚・モラハラジャンルの専門ライターです。ふく（fuku.2025_hpgd）のために、指定テンプレートで長文コンテンツの下書きを生成してください。${context}`;
+      const user = `【テンプレート】${templates[contentTemplate]}
+【テーマ・キーワード】${contentTheme}
+
+上記テンプレートの構成に沿って、ふくさんのジャンル（離婚・モラハラ・証拠収集）に合った長文コンテンツの下書きを生成してください。読者が「準備ならできそう」と思えるトーンで書いてください。`;
+      const r = await callAPI(system, user, 4000);
+      setContentResult(r);
+    } catch(e) { setContentResult("エラー: " + e.message); }
+    finally { setContentLoading(false); }
+  }
+
   async function syncFromBackend() {
     const url = String(threadsConfig.backendUrl || "").trim().replace(/\/$/, "");
     if (!url || url.includes("your-domain.com")) {
@@ -2078,6 +2151,12 @@ CTA：${genForm.cta || "なし"}
     id: "knowledge",
     label: "📚 ナレッジ"
   }, {
+    id: "strategy",
+    label: "🎯 戦略改善"
+  }, {
+    id: "contentCreate",
+    label: "📝 コンテンツ作成"
+  }, {
     id: "settings",
     label: "⚙️ 設定"
   }];
@@ -2123,7 +2202,7 @@ CTA：${genForm.cta || "なし"}
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent"
     }
-  }, "\u2726 kaori's Threads Funnel"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2726 Threads Detective"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -3141,7 +3220,7 @@ CTA：${genForm.cta || "なし"}
       lineHeight: 1.8,
       marginBottom: 12
     }
-  }, "\u6708100\u4E07\u4EE5\u4E0A\u7A3C\u3050\u30DE\u30FC\u30B1\u30BF\u30FC\u306E\u8996\u70B9\u3067\u304B\u304A\u308A\u3055\u3093\u306E\u6295\u7A3F\u3092\u5FB9\u5E95\u5206\u6790\u3057\u307E\u3059\u30026\u7A2E\u985E\u304B\u3089\u9078\u3093\u3067\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002"), !apiKey && /*#__PURE__*/React.createElement("div", {
+  }, "\u6708100\u4E07\u4EE5\u4E0A\u7A3C\u3050\u30DE\u30FC\u30B1\u30BF\u30FC\u306E\u8996\u70B9\u3067\u3075\u304F\u3055\u3093\u306E\u6295\u7A3F\u3092\u5FB9\u5E95\u5206\u6790\u3057\u307E\u3059\u30026\u7A2E\u985E\u304B\u3089\u9078\u3093\u3067\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002"), !apiKey && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 12,
       background: C.pinkBg,
@@ -3343,7 +3422,7 @@ CTA：${genForm.cta || "なし"}
       opacity: genLoading || !apiKey ? 0.5 : 1,
       boxShadow: genLoading || !apiKey ? "none" : "0 4px 14px rgba(240,112,48,0.25)"
     }
-  }, genLoading ? "生成中..." : "✨ かおりスタイルで5パターン生成"), /*#__PURE__*/React.createElement("div", {
+  }, genLoading ? "生成中..." : "✨ ふくスタイルで5パターン生成"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       padding: 12,
@@ -3966,7 +4045,7 @@ CTA：${genForm.cta || "なし"}
       gap: 8,
       flexWrap: "wrap"
     }
-  }, [["kaori", "🎨 かおり式"], ["nekasegi", "😴 寝稼ぎ式"], ["hooks", "🎣 3大フック"], ["ai5", "🤖 AI5技術"], ["layers", "📐 3層構造"], ["reflect", "🔄 振り返り"], ["fuku", "🌸 ふく式参考"], ["fan", "💜 ファン化6原理"], ["noteStep", "📝 noteタイミング"], ["influence", "👑 影響力編"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+  }, [["kaori", "🎨 ふく式"], ["nekasegi", "😴 寝稼ぎ式"], ["hooks", "🎣 3大フック"], ["ai5", "🤖 AI5技術"], ["layers", "📐 3層構造"], ["reflect", "🔄 振り返り"], ["fuku", "🌸 ふく式参考"], ["fan", "💜 ファン化6原理"], ["noteStep", "📝 noteタイミング"], ["influence", "👑 影響力編"], ["buzz", "💥 バズる型"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
     key: k,
     onClick: () => setKnowledgeTab(k),
     style: {
@@ -4257,7 +4336,7 @@ CTA：${genForm.cta || "なし"}
       color: C.text,
       marginBottom: 10
     }
-  }, FUKU_KNOWLEDGE.position), /*#__PURE__*/React.createElement("div", {
+  }, FUKU_KNOWLEDGE.position.uniqueness), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "12px 16px",
       background: "rgba(255,255,255,0.8)",
@@ -4276,7 +4355,7 @@ CTA：${genForm.cta || "なし"}
       fontSize: 16,
       color: C.purple
     }
-  }, FUKU_KNOWLEDGE.position))), /*#__PURE__*/React.createElement("div", {
+  }, FUKU_KNOWLEDGE.position.core))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -4285,32 +4364,32 @@ CTA：${genForm.cta || "なし"}
   }, [{
     title: "勝ちパターン",
     icon: "🏆",
-    items: FUKU_KNOWLEDGE.winningPatterns,
+    items: FUKU_KNOWLEDGE.winningPatterns.bestHooks,
     color: C.pink
   }, {
     title: "フックルール",
     icon: "🎣",
-    items: FUKU_KNOWLEDGE.winningPatterns,
+    items: FUKU_KNOWLEDGE.winningPatterns.resonanceTriggers,
     color: C.orange
   }, {
     title: "note導線フレーズ",
     icon: "🔗",
-    items: FUKU_KNOWLEDGE.noteBridge,
+    items: [FUKU_KNOWLEDGE.noteBridge.trigger, FUKU_KNOWLEDGE.noteBridge.freeNote, FUKU_KNOWLEDGE.noteBridge.paidNote, FUKU_KNOWLEDGE.noteBridge.warmingUp].flat().filter(Boolean),
     color: C.purple
   }, {
     title: "避けること",
     icon: "❌",
-    items: FUKU_KNOWLEDGE.avoid,
+    items: FUKU_KNOWLEDGE.avoid.topics,
     color: C.red
   }, {
     title: "読者の状態",
     icon: "👤",
-    items: FUKU_KNOWLEDGE.target,
+    items: FUKU_KNOWLEDGE.target.pain,
     color: C.gold
   }, {
     title: "主なリスク",
     icon: "⚠️",
-    items: FUKU_KNOWLEDGE.avoid,
+    items: FUKU_KNOWLEDGE.avoid.patterns,
     color: C.orange
   }].map((sec, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
@@ -4540,7 +4619,113 @@ CTA：${genForm.cta || "なし"}
       color: C.text,
       lineHeight: 1.6
     }
-  }, v)))))), tab === "settings" && /*#__PURE__*/React.createElement("div", {
+  }, v)))))), knowledgeTab === "buzz" && /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", flexDirection: "column", gap: 12 }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { padding: "10px 14px", background: "rgba(255,107,0,0.08)", borderRadius: 10, fontSize: 12, color: "#f07030", fontWeight: 700 }
+  }, "skun_1000式 バズる投稿の型 ｜ フック→ターゲット→問題提起→得損→証明→ツリー誘導→有益情報→CTA"),
+  FUKU_KNOWLEDGE.winningPatterns.buzzFormula.steps.map((s) => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    style: { padding: "12px 14px", background: "rgba(255,255,255,0.85)", borderRadius: 12, border: "1.5px solid #f0d9f7" }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { fontWeight: 800, fontSize: 12, color: "#f07030", marginBottom: 4 }
+  }, "STEP" + s.id + "｜" + s.name),
+  /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 11, color: "#7a4d9a", lineHeight: 1.7, marginBottom: 6 }
+  }, s.desc),
+  s.examples && /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", flexWrap: "wrap", gap: 4 }
+  }, s.examples.map((ex, ei) => /*#__PURE__*/React.createElement("span", {
+    key: ei,
+    style: { fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "#fff0f5", color: "#e8417a", fontWeight: 600 }
+  }, ex))))))
+, tab === "strategy" && /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", flexDirection: "column", gap: 16 }
+  },
+  /*#__PURE__*/React.createElement("div", { style: card },
+    /*#__PURE__*/React.createElement(SectionTitle, { icon: "\uD83D\uDCE6", title: "\u5546\u54C1\u30FB\u30B5\u30FC\u30D3\u30B9\u8A2D\u5B9A", color: C.purple }),
+    ["product:\u5546\u54C1\u540D", "price:\u4FA1\u683C", "url:\u7533\u8FBC\u5C0E\u7DDA URL"].map(f => {
+      const [k, label] = f.split(":");
+      return /*#__PURE__*/React.createElement("div", { key: k, style: { marginBottom: 8 } },
+        /*#__PURE__*/React.createElement("label", { style: lbl }, label),
+        /*#__PURE__*/React.createElement("input", { value: strategyData[k]||"", onChange: e => setStrategyData(p => ({...p, [k]: e.target.value})), style: inp, placeholder: label + "\u3092\u5165\u529B" })
+      );
+    }),
+    /*#__PURE__*/React.createElement("div", { style: { marginBottom: 8 } },
+      /*#__PURE__*/React.createElement("label", { style: lbl }, "\u5546\u54C1\u8AAC\u660E"),
+      /*#__PURE__*/React.createElement("textarea", { value: strategyData.description||"", onChange: e => setStrategyData(p => ({...p, description: e.target.value})), style: { ...inp, height: 80, resize: "vertical" }, placeholder: "\u5546\u54C1\u306E\u8AAC\u660E\u30FB\u30BF\u30FC\u30B2\u30C3\u30C8\u30FB\u4FA1\u5024\u3092\u5165\u529B" })
+    ),
+    /*#__PURE__*/React.createElement("button", { onClick: () => { try { localStorage.setItem("fuku_strategy", JSON.stringify(strategyData)); alert("\u4FDD\u5B58\u3057\u307E\u3057\u305F"); } catch(e) {} }, style: { ...mkbtn(C.purple), width: "100%" } }, "\uD83D\uDCBE \u5546\u54C1\u60C5\u5831\u3092\u4FDD\u5B58")
+  ),
+  /*#__PURE__*/React.createElement("div", { style: card },
+    /*#__PURE__*/React.createElement(SectionTitle, { icon: "\uD83D\uDCCA", title: "\u30D5\u30A1\u30CD\u30EB\u6570\u5B57", color: C.pink }),
+    [["followers","\u6708\u9593\u30D5\u30A9\u30ED\u30EF\u30FC\u5897\u52A0\u6570"], ["profileVisits","\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u8A2A\u554F\u6570"], ["noteViews","note\u95B2\u89A7\u6570"], ["orders","\u7533\u8FBC\u6570\u30FB\u8CFC\u5165\u6570"], ["revenue","\u58F2\u4E0A\u91D1\u984D"]].map(([k, label]) =>
+      /*#__PURE__*/React.createElement("div", { key: k, style: { marginBottom: 8 } },
+        /*#__PURE__*/React.createElement("label", { style: lbl }, label),
+        /*#__PURE__*/React.createElement("input", { value: strategyData[k]||"", onChange: e => setStrategyData(p => ({...p, [k]: e.target.value})), style: inp, placeholder: "\u6570\u5024\u3092\u5165\u529B" })
+      )
+    ),
+    /*#__PURE__*/React.createElement("button", { onClick: () => { try { localStorage.setItem("fuku_strategy", JSON.stringify(strategyData)); alert("\u4FDD\u5B58\u3057\u307E\u3057\u305F"); } catch(e) {} }, style: { ...mkbtn(C.pink), width: "100%" } }, "\uD83D\uDCBE \u6570\u5B57\u3092\u4FDD\u5B58")
+  ),
+  /*#__PURE__*/React.createElement("div", { style: card },
+    /*#__PURE__*/React.createElement(SectionTitle, { icon: "\uD83D\uDD0E", title: "\u6A19\u6E96\u30C1\u30A7\u30C3\u30AF\uFF08API\u30AD\u30FC\u4E0D\u8981\uFF09", color: C.orange }),
+    [
+      ["\u5546\u54C1\u8A2D\u5B9A", strategyData.product ? "OK" : "NG", strategyData.product ? "\u5546\u54C1\u540D\u304C\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059" : "\u5546\u54C1\u540D\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044"],
+      ["\u5C0E\u7DDA URL", strategyData.url ? "OK" : "\u8981\u6539\u5584", strategyData.url ? "\u7533\u8FBC URL \u304C\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059" : "\u7533\u8FBC URL \u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044"],
+      ["\u30D5\u30A1\u30CD\u30EB\u6570\u5B57", strategyData.followers ? "OK" : "NG", strategyData.followers ? "\u6570\u5B57\u304C\u5165\u529B\u3055\u308C\u3066\u3044\u307E\u3059" : "\u30D5\u30A1\u30CD\u30EB\u6570\u5B57\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044"],
+      ["CTA\u8A2D\u5B9A", genForm.cta ? "OK" : "\u8981\u6539\u5584", genForm.cta ? "CTA\u304C\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059" : "\u6295\u7A3F\u751F\u6210\u30BF\u30D6\u3067CTA\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044"]
+    ].map(([label, status, msg]) =>
+      /*#__PURE__*/React.createElement("div", { key: label, style: { display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: C.s2, borderRadius: 8, marginBottom: 6 } },
+        /*#__PURE__*/React.createElement("span", { style: { fontWeight: 800, fontSize: 11, color: status === "OK" ? C.green : status === "NG" ? C.red : C.gold, minWidth: 60 } }, status === "OK" ? "\u2705 OK" : status === "NG" ? "\u274C NG" : "\u26A0\uFE0F \u8981\u6539\u5584"),
+        /*#__PURE__*/React.createElement("span", { style: { fontWeight: 700, fontSize: 12, color: C.text, minWidth: 80 } }, label),
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: C.sub } }, msg)
+      )
+    )
+  ),
+  /*#__PURE__*/React.createElement("div", { style: card },
+    /*#__PURE__*/React.createElement(SectionTitle, { icon: "\uD83E\uDD16", title: "AI\u6226\u7565\u5206\u6790\uFF08API\u30AD\u30FC\u5FC5\u8981\uFF09", color: C.purple }),
+    !apiKey && /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, "\u26A0\uFE0F \u2699\uFE0F\u8A2D\u5B9A\u30BF\u30D6\u3067API\u30AD\u30FC\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044"),
+    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginBottom: 12 } },
+      [["funnel","\uD83D\uDD0D \u58F2\u4E0A\u5C0E\u7DDA\u8A3A\u65AD"], ["plan7","\uD83D\uDCC5 7\u65E5\u9593\u5B9F\u884C\u8A08\u753B"], ["plan30","\uD83D\uDCC5 30\u65E5\u9593\u5B9F\u884C\u8A08\u753B"], ["plan90","\uD83D\uDCC5 90\u65E5\u9593\u5B9F\u884C\u8A08\u753B"], ["weekly","\uD83D\uDCCA \u9031\u6B21\u6539\u5584\u30D7\u30E9\u30F3"]].map(([mode, label]) =>
+        /*#__PURE__*/React.createElement("button", { key: mode, onClick: () => runStrategy(mode), disabled: strategyLoading || !apiKey, style: { ...mkbtn(strategyLoading ? "#ccc" : C.purple), fontSize: 12, textAlign: "left" } }, label)
+      )
+    ),
+    strategyLoading && /*#__PURE__*/React.createElement("div", { style: { color: C.purple, fontSize: 12, textAlign: "center", padding: 16 } }, "\u23F3 AI\u5206\u6790\u4E2D..."),
+    strategyResult && /*#__PURE__*/React.createElement("div", { style: { background: C.s2, borderRadius: 12, padding: 16, fontSize: 13, lineHeight: 1.8, color: C.text, whiteSpace: "pre-wrap", border: "1.5px solid " + C.border } }, strategyResult)
+  )
+), tab === "contentCreate" && /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", flexDirection: "column", gap: 16 }
+  },
+  /*#__PURE__*/React.createElement("div", { style: card },
+    /*#__PURE__*/React.createElement(SectionTitle, { icon: "\uD83D\uDCDD", title: "\u30B3\u30F3\u30C6\u30F3\u30C4\u4F5C\u6210\u30FB\u9577\u6587\u4E0B\u66F8\u304D", color: C.purple }),
+    /*#__PURE__*/React.createElement("label", { style: lbl }, "\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u9078\u629E"),
+    /*#__PURE__*/React.createElement("select", { value: contentTemplate, onChange: e => setContentTemplate(e.target.value), style: { ...inp, marginBottom: 12 } },
+      [["prep","PREP\u6CD5\uFF08\u7D50\u8AD6\u2192\u7406\u7531\u2192\u5177\u4F53\u4F8B\u2192\u7D50\u8AD6\uFF09"], ["pasona","PASONA\u6CD5\uFF08\u554F\u984C\u2192\u5171\u611F\u2192\u89E3\u6C7A\u7B56\u2192\u63D0\u6848\u2192\u884C\u52D5\uFF09"], ["story","\u4F53\u9A13\u8AB0\uFF08\u51FA\u6765\u4E8B\u2192\u611F\u60C5\u2192\u6C17\u3065\u304D\u2192\u5909\u5316\uFF09"], ["knowhow","\u30CE\u30A6\u30CF\u30A6\u8A18\u4E8B\uFF08\u624B\u9806\u30FB\u30EA\u30B9\u30C8\u5F62\u5F0F\uFF09"], ["note","\u6709\u6599note\uFF08\u7121\u6599\u90E8\u5206\uFF0B\u6709\u6599\u90E8\u5206\u306E\u8A2D\u8A08\uFF09"], ["faq","FAQ\u5F62\u5F0F\uFF08\u3088\u304F\u3042\u308B\u8CEA\u554F\u3068\u56DE\u7B54\uFF09"], ["case","\u4E8B\u4F8B\u7D39\u4ECB\uFF08\u30D3\u30D5\u30A9\u30FC\u30A2\u30D5\u30BF\u30FC\uFF09"], ["compare","\u6BD4\u8F03\u8A18\u4E8B\uFF08A vs B\uFF09"], ["launch","\u30ED\u30FC\u30F3\u30C1\u544A\u77E5\uFF08\u65B0\u5546\u54C1\u544A\u77E5\u30FB\u8CFC\u8CB7\u4FC3\u9032\uFF09"], ["free","\u7121\u6599\u30D7\u30EC\u30BC\u30F3\u30C8\u8AA4\u5C0E\uFF08\u30EA\u30FC\u30C9\u7372\u5F97\uFF09"], ["summary","\u307E\u3068\u3081\u8A18\u4E8B\uFF08\u7DCF\u307E\u3068\u3081\u30FB\u4FDD\u5B58\u7248\uFF09"]].map(([v, l]) =>
+        /*#__PURE__*/React.createElement("option", { key: v, value: v }, l)
+      )
+    ),
+    /*#__PURE__*/React.createElement("label", { style: lbl }, "\u30C6\u30FC\u30DE\u30FB\u30AD\u30FC\u30EF\u30FC\u30C9"),
+    /*#__PURE__*/React.createElement("textarea", { value: contentTheme, onChange: e => setContentTheme(e.target.value), style: { ...inp, height: 90, resize: "vertical", marginBottom: 12 }, placeholder: "\u4F8B\uFF1A\u30E2\u30E9\u30CF\u30E9\u306E\u8A3C\u62E0\u53CE\u96C6\u65B9\u6CD5\u3001\u96E2\u5A5A\u524D\u306B\u6E96\u5099\u3059\u308B\u3053\u3068..." }),
+    /*#__PURE__*/React.createElement("label", { style: { ...lbl, marginBottom: 8 } }, "\u53C2\u7167\u60C5\u5831"),
+    /*#__PURE__*/React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 } },
+      [["useKnowledge", useKnowledge, setUseKnowledge, "FUKU_KNOWLEDGE\u306E\u60C5\u5831\u3092\u53C2\u7167"], ["useStrategy", useStrategy, setUseStrategy, "\u5546\u54C1\u60C5\u5831\u3092\u53C2\u7167"], ["useBuzz", useBuzz, setUseBuzz, "\u30D0\u30BA\u6295\u7A3F\u30C7\u30FC\u30BF\u3092\u53C2\u7167"]].map(([key, val, setter, label]) =>
+        /*#__PURE__*/React.createElement("label", { key: key, style: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.sub, cursor: "pointer" } },
+          /*#__PURE__*/React.createElement("input", { type: "checkbox", checked: val, onChange: e => setter(e.target.checked), style: { width: 14, height: 14, accentColor: C.purple } }),
+          label
+        )
+      )
+    ),
+    !apiKey && /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 8 } }, "\u26A0\uFE0F \u2699\uFE0F\u8A2D\u5B9A\u30BF\u30D6\u3067API\u30AD\u30FC\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044"),
+    /*#__PURE__*/React.createElement("button", { onClick: runContentCreate, disabled: contentLoading || !apiKey, style: { ...mkbtn(contentLoading ? "#ccc" : C.purple), width: "100%" } }, contentLoading ? "\u23F3 \u751F\u6210\u4E2D..." : "\uD83D\uDCDD \u4E0B\u66F8\u304D\u751F\u6210"),
+    contentResult && /*#__PURE__*/React.createElement("div", { style: { marginTop: 14 } },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+        /*#__PURE__*/React.createElement("span", { style: { fontWeight: 800, fontSize: 12, color: C.purple } }, "\uD83D\uDCC4 \u751F\u6210\u3055\u308C\u305F\u4E0B\u66F8\u304D"),
+        /*#__PURE__*/React.createElement("button", { onClick: () => { navigator.clipboard.writeText(contentResult); alert("\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\uFF01"); }, style: { ...mkbtn(C.pink), fontSize: 11, padding: "4px 12px" } }, "\uD83D\uDCCB \u30B3\u30D4\u30FC")
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { background: C.s2, borderRadius: 12, padding: 16, fontSize: 13, lineHeight: 1.9, color: C.text, whiteSpace: "pre-wrap", border: "1.5px solid " + C.border } }, contentResult)
+    )
+  )
+, tab === "settings" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -4666,7 +4851,7 @@ CTA：${genForm.cta || "なし"}
       width: "100%",
       marginTop: 4
     }
-  }, "\u4FDD\u5B58\u3059\u308B")))));
+  }, "\u4FDD\u5B58\u3059\u308B"))))));
 }
 const _root = ReactDOM.createRoot(document.getElementById('root'));
 _root.render(React.createElement(App));
